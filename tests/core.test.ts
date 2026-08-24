@@ -116,6 +116,35 @@ describe("AI fallback and safety-shaped output", () => {
     expect(Array.isArray(parsed.avoid)).toBe(true);
     expect(parsed.suggested_message).toBeTruthy();
   });
+
+  it("returns card copy instead of situation JSON", async () => {
+    const provider = new FallbackProvider();
+    const result = await provider.generate(
+      [
+        { role: "system", content: "Write a short elegant card message. Return JSON: { message, kicker }" },
+        { role: "user", content: "Category: GOOD_NIGHT. Theme: dreamy. Occasion: none." },
+      ],
+      { json: true },
+    );
+    const parsed = JSON.parse(result.text);
+    expect(parsed.message).toBeTruthy();
+    expect(parsed.kicker).toBeTruthy();
+    expect(parsed.recommendation).toBeUndefined();
+  });
+
+  it("returns message drafts for the studio", async () => {
+    const provider = new FallbackProvider();
+    const result = await provider.generate(
+      [
+        { role: "system", content: "Write 3 suggested messages. Return JSON: { messages: string[] }" },
+        { role: "user", content: "Category: ROMANTIC\nWhat I want to say: I miss you" },
+      ],
+      { json: true },
+    );
+    const parsed = JSON.parse(result.text);
+    expect(Array.isArray(parsed.messages)).toBe(true);
+    expect(parsed.messages.length).toBeGreaterThan(0);
+  });
 });
 
 describe("security helpers", () => {

@@ -7,6 +7,23 @@ import { analyzeSituation, extractMemorySuggestion } from "@/ai/services";
 import { track } from "@/lib/analytics";
 import { rateLimit } from "@/lib/rate-limit";
 
+const RECS = [
+  "APOLOGIZE",
+  "TALK_CALMLY",
+  "GIVE_SPACE",
+  "CLARIFY",
+  "APPRECIATE",
+  "DO_SOMETHING_THOUGHTFUL",
+  "WAIT_BEFORE_RESPONDING",
+  "TALK_IN_PERSON",
+  "NO_ACTION_NEEDED",
+] as const;
+
+function asRecommendation(value: string): RecommendationType {
+  const key = value.toUpperCase().replaceAll(" ", "_");
+  return (RECS as readonly string[]).includes(key) ? (key as RecommendationType) : "TALK_CALMLY";
+}
+
 const schema = z.object({
   description: z.string().min(3).max(4000),
   howUserFeels: z.string().optional(),
@@ -35,15 +52,15 @@ export async function POST(req: Request) {
         status: "OPEN",
         analysis: {
           create: {
-            recommendation: analysis.recommendation as RecommendationType,
-            confidence: analysis.confidence,
+            recommendation: asRecommendation(analysis.recommendation),
+            confidence: analysis.confidence || "medium",
             summary: analysis.summary,
-            reasoningSummary: analysis.reasoning_summary,
-            avoid: analysis.avoid,
-            nextStep: analysis.next_step,
+            reasoningSummary: analysis.reasoning_summary || analysis.summary,
+            avoid: analysis.avoid ?? [],
+            nextStep: analysis.next_step || "Send a short, specific message when you’re ready.",
             suggestedMessage: analysis.suggested_message,
             gesture: analysis.gesture,
-            needsSpace: analysis.needs_space,
+            needsSpace: Boolean(analysis.needs_space),
             rawJson: analysis as unknown as Prisma.InputJsonValue,
           },
         },

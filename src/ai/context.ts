@@ -76,13 +76,18 @@ export async function buildAIContext(userId: string): Promise<AIContext> {
       }))
     : [];
 
-  const chatImport = settings?.aiShareMemories
-    ? await db.chatImport.findFirst({
+  let chatImport = null;
+  if (settings?.aiShareMemories) {
+    try {
+      chatImport = await db.chatImport.findFirst({
         where: { userId },
         orderBy: { createdAt: "desc" },
         select: { analysis: true },
-      })
-    : null;
+      });
+    } catch (error) {
+      console.error("chat import lookup failed", error);
+    }
+  }
   const chatAnalysis = (chatImport?.analysis ?? null) as {
     summary?: string;
     likes?: string[];

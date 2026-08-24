@@ -4,8 +4,9 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { computeInsights } from "@/services/insights";
 import { Card, CardTitle } from "@/components/ui/card";
-import { WeeklyFocusToggle } from "@/features/insights/weekly-focus";
+import { WeeklyFocusToggle, WeeklyFocusPrepare } from "@/features/insights/weekly-focus";
 import { Button } from "@/components/ui/button";
+import { getLatestChatImport } from "@/chat/queries";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -19,10 +20,7 @@ export default async function InsightsPage() {
       where: { userId: session.user.id },
       orderBy: { weekStart: "desc" },
     }),
-    db.chatImport.findFirst({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: "desc" },
-    }),
+    getLatestChatImport(session.user.id),
   ]);
 
   const stats = (chatImport?.stats ?? {}) as {
@@ -160,9 +158,7 @@ export default async function InsightsPage() {
             <WeeklyFocusToggle id={focus.id} completed={focus.completed} />
           </>
         ) : (
-          <Button className="mt-4" asChild>
-            <a href="/api/insights/weekly">Prepare this week’s focus</a>
-          </Button>
+            <WeeklyFocusPrepare />
         )}
       </Card>
     </div>

@@ -4,12 +4,14 @@ import { db } from "@/lib/db";
 import { handleApiError, jsonOk } from "@/lib/api";
 import { generateCardCopy } from "@/ai/services";
 import { pickTheme, renderCardHtml } from "@/ai/cards";
+import { localCardCopy } from "@/ai/local-replies";
 import { fingerprint } from "@/lib/crypto";
 import { track } from "@/lib/analytics";
+import { CARD_CATEGORIES } from "@/types";
 import type { CardCategory } from "@prisma/client";
 
 const schema = z.object({
-  category: z.string(),
+  category: z.enum(CARD_CATEGORIES),
   theme: z.string().optional(),
   message: z.string().optional(),
   occasion: z.string().optional(),
@@ -29,6 +31,7 @@ export async function POST(req: Request) {
   try {
     const user = await requireUser();
     const body = schema.parse(await req.json());
+    const partnerName = user.relationships[0]?.partnerName;
     const recent = await db.card.findMany({
       where: { userId: user.id, category: body.category as CardCategory },
       orderBy: { createdAt: "desc" },
@@ -38,14 +41,29 @@ export async function POST(req: Request) {
       ? { id: body.theme }
       : pickTheme(body.category, recent.map((c) => c.theme));
 
-    const copy = body.message
-      ? { message: body.message, kicker: body.occasion ?? theme.id }
-      : await generateCardCopy(user.id, { category: body.category, theme: theme.id, occasion: body.occasion });
+    const custom = body.message?.trim();
+    let copy = custom
+      ? { message: custom, kicker: body.occasion ?? theme.id }
+      : null;
+    if (!copy) {
+      try {
+        copy = await generateCardCopy(user.id, {
+          category: body.category,
+          theme: theme.id,
+          occasion: body.occasion,
+        });
+      } catch {
+        copy = null;
+      }
+    }
+    if (!copy?.message) {
+      copy = localCardCopy(body.category, theme.id, partnerName ?? undefined);
+    }
 
     const html = renderCardHtml({
       message: copy.message,
       themeId: theme.id,
-      partnerName: user.relationships[0]?.partnerName,
+      partnerName,
       occasion: copy.kicker,
     });
     const fp = fingerprint([user.id, body.category, theme.id, copy.message]);

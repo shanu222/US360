@@ -6,6 +6,7 @@ import { greetingForHour, localHour } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getLatestChatImport } from "@/chat/queries";
 
 const QUICK = [
   { href: "/assistant", label: "What Should I Do?", emoji: "🧠" },
@@ -31,7 +32,7 @@ export default async function HomePage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [recommendation, upcoming, morningCard, nightCard, reel, chatImport] = await Promise.all([
+  const [recommendation, upcoming, morningCard, nightCard, reel] = await Promise.all([
     db.dailyRecommendation.findFirst({
       where: { userId: user.id, date: { gte: today } },
       orderBy: { createdAt: "desc" },
@@ -50,12 +51,18 @@ export default async function HomePage() {
       orderBy: { createdAt: "desc" },
     }),
     db.reel.findFirst({ where: { userId: user.id }, orderBy: { createdAt: "desc" } }),
-    db.chatImport.findFirst({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-      select: { partnerName: true, messageCount: true, analysis: true, firstAt: true, lastAt: true },
-    }),
   ]);
+  const chatImport = await getLatestChatImport(user.id).then((row) =>
+    row
+      ? {
+          partnerName: row.partnerName,
+          messageCount: row.messageCount,
+          analysis: row.analysis,
+          firstAt: row.firstAt,
+          lastAt: row.lastAt,
+        }
+      : null,
+  );
 
   const suggestion = recommendation ?? {
     title: "Today’s suggestion",

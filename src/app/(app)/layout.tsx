@@ -11,7 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const onboarding = await db.onboardingState.findUnique({ where: { userId: session.user.id } });
   if (!onboarding || !onboarding.completed) redirect("/onboarding");
-  if (onboarding.chatImportStatus === "PENDING") redirect("/import-chat");
+  if ((onboarding.chatImportStatus ?? "PENDING") === "PENDING") redirect("/import-chat");
 
   return <AppShell user={session.user}>{children}</AppShell>;
 }

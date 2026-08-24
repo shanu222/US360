@@ -21,10 +21,16 @@ export function handleApiError(error: unknown) {
   if (error instanceof Error && error.message === "FORBIDDEN") {
     return jsonError("You do not have access to this resource.", 403);
   }
+  if (error instanceof Error && error.message === "AI_LIMIT") {
+    return jsonError("You’ve reached today’s AI limit. You can still write manually.", 429);
+  }
+  if (error instanceof Error && error.message === "AI_PARSE") {
+    return jsonError("The assistant couldn’t format a reply. Please try again.", 502);
+  }
   console.error(error);
   const message = error instanceof Error ? error.message : "";
   if (
-    /Can't reach database|P1001|P1017|does not exist|Environment variable not found: DATABASE_URL|Authentication failed/i.test(
+    /Can't reach database|P1001|P1017|does not exist|P2021|P2022|Environment variable not found: DATABASE_URL|Authentication failed/i.test(
       message,
     )
   ) {

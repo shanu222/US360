@@ -37,6 +37,11 @@ export default function ReelsPage() {
 
   useEffect(() => {
     load();
+    if (new URLSearchParams(window.location.search).get("ig") === "manual") {
+      toast.message("Open Instagram & Share", {
+        description: "Official Instagram login isn’t configured. You can still save Reels and share them yourself.",
+      });
+    }
   }, []);
 
   async function add(e: React.FormEvent) {

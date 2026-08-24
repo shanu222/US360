@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/server/auth";
 import { instagramAuthUrl, instagramConfigured } from "@/integrations/instagram";
 import { jsonError } from "@/lib/api";
+import { appUrl } from "@/lib/env";
 import { randomBytes } from "crypto";
 
 export async function GET() {
   try {
     const user = await requireUser();
     if (!instagramConfigured()) {
-      return jsonError("Instagram connection unavailable. You can still open Instagram manually.", 503);
+      return NextResponse.redirect(new URL("/reels?ig=manual", appUrl()));
     }
     const state = `${user.id}.${randomBytes(8).toString("hex")}`;
     const res = NextResponse.redirect(instagramAuthUrl(state));

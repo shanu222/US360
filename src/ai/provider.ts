@@ -19,6 +19,32 @@ export function getLLM(): LLMProvider {
   return cached;
 }
 
+async function logUsage(data: {
+  userId: string;
+  feature: string;
+  model: string;
+  tokensIn?: number;
+  tokensOut?: number;
+  success: boolean;
+  cached?: boolean;
+}) {
+  try {
+    await db.aIUsageLog.create({
+      data: {
+        userId: data.userId,
+        feature: data.feature,
+        model: data.model,
+        tokensIn: data.tokensIn ?? 0,
+        tokensOut: data.tokensOut ?? 0,
+        success: data.success,
+        cached: data.cached ?? false,
+      },
+    });
+  } catch (error) {
+    console.error("AI usage log failed", error);
+  }
+}
+
 export async function generateAI(
   userId: string,
   feature: string,
@@ -34,40 +60,35 @@ export async function generateAI(
     where: { userId, createdAt: { gte: start }, cached: false },
   });
 
-  if (used >= dailyLimit) {
-    throw new Error("AI_LIMIT");
-  }
-
+  const withSafety: ChatMessage[] = [{ role: "system", content: SAFETY_SYSTEM }, ...messages];
   const llm = getLLM();
-  const withSafety: ChatMessage[] = [
-    { role: "system", content: SAFETY_SYSTEM },
-    ...messages,
-  ];
+
+  if (used >= dailyLimit && llm.name !== "fallback") {
+    const fallback = new FallbackProvider();
+    const result = await fallback.generate(withSafety, options);
+    await logUsage({ userId, feature, model: result.model, success: true, cached: true });
+    return result;
+  }
 
   try {
     const result = await llm.generate(withSafety, options);
-    await db.aIUsageLog.create({
-      data: {
-        userId,
-        feature,
-        model: result.model,
-        tokensIn: result.tokensIn,
-        tokensOut: result.tokensOut,
-        success: true,
-        cached: llm.name === "fallback",
-      },
+    await logUsage({
+      userId,
+      feature,
+      model: result.model,
+      tokensIn: result.tokensIn,
+      tokensOut: result.tokensOut,
+      success: true,
+      cached: llm.name === "fallback",
     });
     return result;
   } catch (error) {
-    await db.aIUsageLog.create({
-      data: {
-        userId,
-        feature,
-        model: llm.name,
-        success: false,
-      },
-    });
-    throw error;
+    console.error("AI provider failed; using local fallback", error);
+    await logUsage({ userId, feature, model: llm.name, success: false });
+    const fallback = new FallbackProvider();
+    const result = await fallback.generate(withSafety, options);
+    await logUsage({ userId, feature, model: result.model, success: true, cached: true });
+    return result;
   }
 }
 
@@ -76,5 +97,9 @@ export function parseJson<T>(text: string): T {
   const start = trimmed.indexOf("{");
   const end = trimmed.lastIndexOf("}");
   const json = start >= 0 && end >= 0 ? trimmed.slice(start, end + 1) : trimmed;
-  return JSON.parse(json) as T;
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    throw new Error("AI_PARSE");
+  }
 }

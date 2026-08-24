@@ -62,7 +62,9 @@ export default function CalendarPage() {
           <Label>Type</Label>
           <select className="h-12 w-full rounded-2xl border border-line bg-white px-4" value={type} onChange={(e) => setType(e.target.value)}>
             {TYPES.map((t) => (
-              <option key={t}>{t}</option>
+              <option key={t} value={t}>
+                {t}
+              </option>
             ))}
           </select>
         </div>
