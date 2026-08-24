@@ -37,14 +37,15 @@ export default function ProfilePage() {
 
   if (loading) return <p className="text-sm text-muted">Loading profile…</p>;
 
-  const groups = ["about", "favorites", "send", "conflict", "style", "history", "now"] as const;
+  const groups = ["city", "about", "favorites", "food", "send", "conflict", "style", "history", "now"] as const;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="font-display text-4xl text-navy">Relationship profile</h1>
         <p className="mt-2 text-muted">
-          Train US360 without an AI. These fields feed the rule engine, cards, Reel choices, and the Send button.
+          Train US360 without an AI. These fields feed the rule engine, cards, Reel choices, Send, and city food/place
+          suggestions. City is enough — do not enter a home address.
         </p>
       </div>
       <Card className="space-y-4">

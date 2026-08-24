@@ -78,6 +78,29 @@ type Result = {
   situation: string;
   relationshipState: string;
   priority: string;
+  lifestyle?: {
+    city: string | null;
+    weather: { summary: string; tempC: number | null; source: string } | null;
+    summary: string;
+    restaurants: Array<{
+      key: string;
+      name: string;
+      city: string;
+      area?: string;
+      priceRange?: string;
+      mapsUrl: string;
+      website?: string;
+      freshness: string;
+      lastVerifiedAt?: string | null;
+      hoursLabel?: string;
+      openNow?: boolean | null;
+      reasons: string[];
+    }>;
+    places: Array<{ key: string; name: string; mapsUrl: string; reasons: string[]; freshness: string }>;
+    order: { main: string; side: string; drink: string; dessert: string; why: string } | null;
+    dateNight: { vibe: string; dinner: { name: string } | null; activity: { name: string } | null; timing: string; message: string } | null;
+    dayPlan: Array<{ when: string; title: string; detail: string }> | null;
+  } | null;
 };
 
 const EXAMPLES = [
@@ -91,6 +114,11 @@ const EXAMPLES = [
   "Find something nice to send her.",
   "She did really well in her exam.",
   "I want to make her smile.",
+  "What should we eat tonight?",
+  "Suggest a restaurant.",
+  "Plan a date for us.",
+  "What should we visit in Islamabad?",
+  "What should we do today?",
 ];
 
 const CHANNELS = ["instagram", "facebook", "whatsapp", "email"] as const;
@@ -165,6 +193,11 @@ export function CommandBar({ compact }: { compact?: boolean }) {
         reelUrl: result.reel?.url,
         imageUrls: [result.reel?.url].filter(Boolean),
         share: result.share,
+        venue: result.lifestyle?.restaurants[0]
+          ? { key: result.lifestyle.restaurants[0].key, name: result.lifestyle.restaurants[0].name, city: result.lifestyle.restaurants[0].city, kind: "restaurant" }
+          : result.lifestyle?.places[0]
+            ? { key: result.lifestyle.places[0].key, name: result.lifestyle.places[0].name, city: result.lifestyle.city ?? "", kind: "place" }
+            : null,
       }),
     });
     const json = await res.json();
@@ -399,6 +432,119 @@ export function CommandBar({ compact }: { compact?: boolean }) {
                 <Link href="/cards">Edit in studio</Link>
               </Button>
             </div>
+          ) : null}
+
+          {result.lifestyle ? (
+            <Card>
+              <p className="text-xs uppercase tracking-[0.2em] text-rose">City · food · places</p>
+              <CardTitle className="mt-2">{result.lifestyle.city ? `Tonight in ${result.lifestyle.city}` : "Add your city"}</CardTitle>
+              <p className="mt-2 text-sm text-muted">{result.lifestyle.summary}</p>
+              {result.lifestyle.weather ? (
+                <p className="mt-1 text-xs text-muted">
+                  Weather: {result.lifestyle.weather.summary}
+                  {result.lifestyle.weather.tempC != null ? ` · ${Math.round(result.lifestyle.weather.tempC)}°C` : ""} ({result.lifestyle.weather.source})
+                </p>
+              ) : null}
+
+              {result.lifestyle.restaurants.length ? (
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm font-medium">Dinner suggestions</p>
+                  {result.lifestyle.restaurants.slice(0, 3).map((r, i) => (
+                    <div key={r.key} className="rounded-2xl bg-paper p-3">
+                      <p className="font-medium">
+                        {i === 0 ? "🥇 " : i === 1 ? "🥈 " : "🥉 "}
+                        {r.name}
+                      </p>
+                      <p className="text-xs text-muted">
+                        {r.area || r.city}
+                        {r.priceRange ? ` · ${r.priceRange}` : ""}
+                        {r.openNow === true ? " · open at this time" : r.openNow === false ? " · may be closed" : ""}
+                        {` · ${r.freshness}`}
+                        {r.lastVerifiedAt ? ` · last verified ${new Date(r.lastVerifiedAt).toLocaleString()}` : r.freshness === "catalog" ? " · catalog (not live-verified)" : ""}
+                      </p>
+                      <ul className="mt-2 list-disc pl-5 text-xs text-muted">
+                        {r.reasons.slice(0, 4).map((why) => (
+                          <li key={why}>{why}</li>
+                        ))}
+                      </ul>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Button size="sm" variant="outline" asChild>
+                          <a href={r.mapsUrl} target="_blank" rel="noreferrer">
+                            Directions
+                          </a>
+                        </Button>
+                        {r.website ? (
+                          <Button size="sm" variant="ghost" asChild>
+                            <a href={r.website} target="_blank" rel="noreferrer">
+                              Website
+                            </a>
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {result.lifestyle.order ? (
+                <div className="mt-4 rounded-2xl bg-paper p-3 text-sm">
+                  <p className="font-medium">Recommended order</p>
+                  <p className="mt-2">Main: {result.lifestyle.order.main}</p>
+                  <p>Side: {result.lifestyle.order.side}</p>
+                  <p>Drink: {result.lifestyle.order.drink}</p>
+                  <p>Dessert: {result.lifestyle.order.dessert}</p>
+                  <p className="mt-2 text-xs text-muted">{result.lifestyle.order.why}</p>
+                </div>
+              ) : null}
+
+              {result.lifestyle.places.length ? (
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm font-medium">Places</p>
+                  {result.lifestyle.places.slice(0, 3).map((p) => (
+                    <div key={p.key} className="rounded-2xl bg-paper p-3">
+                      <p className="font-medium">{p.name}</p>
+                      <ul className="mt-2 list-disc pl-5 text-xs text-muted">
+                        {p.reasons.slice(0, 4).map((why) => (
+                          <li key={why}>{why}</li>
+                        ))}
+                      </ul>
+                      <Button size="sm" className="mt-2" variant="outline" asChild>
+                        <a href={p.mapsUrl} target="_blank" rel="noreferrer">
+                          Details / directions
+                        </a>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {result.lifestyle.dateNight ? (
+                <div className="mt-4 rounded-2xl bg-paper p-3 text-sm">
+                  <p className="font-medium">Date night · {result.lifestyle.dateNight.vibe}</p>
+                  <p className="mt-2">Dinner: {result.lifestyle.dateNight.dinner?.name ?? "Pick from the list above"}</p>
+                  <p>Activity: {result.lifestyle.dateNight.activity?.name ?? "A quiet walk nearby"}</p>
+                  <p className="mt-2 text-muted">{result.lifestyle.dateNight.timing}</p>
+                  <p className="mt-2 italic">“{result.lifestyle.dateNight.message}”</p>
+                </div>
+              ) : null}
+
+              {result.lifestyle.dayPlan ? (
+                <div className="mt-4 space-y-2 text-sm">
+                  <p className="font-medium">Today’s plan</p>
+                  {result.lifestyle.dayPlan.map((b) => (
+                    <p key={b.when}>
+                      <span className="font-medium">{b.when}:</span> {b.title} — {b.detail}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+
+              {!result.lifestyle.city ? (
+                <Button className="mt-4" size="sm" asChild>
+                  <Link href="/profile">Set city on Profile</Link>
+                </Button>
+              ) : null}
+            </Card>
           ) : null}
 
           <Card>

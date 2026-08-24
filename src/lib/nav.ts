@@ -11,6 +11,7 @@ import {
   BookHeart,
   HeartHandshake,
   History,
+  UtensilsCrossed,
 } from "lucide-react";
 
 export const NAV = [
@@ -21,6 +22,7 @@ export const NAV = [
   { href: "/profile", label: "Profile", icon: HeartHandshake },
   { href: "/timeline", label: "Timeline", icon: History },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/explore", label: "Explore", icon: UtensilsCrossed },
   { href: "/reels", label: "Reels", icon: Clapperboard },
   { href: "/cards", label: "Cards", icon: MessageCircleHeart },
   { href: "/ideas", label: "Ideas", icon: Lightbulb },

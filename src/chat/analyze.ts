@@ -1,6 +1,7 @@
 import { guessPartnerName, type ParsedMessage } from "@/chat/parse";
 import { extractChatCalendar, reelQueriesFromChat } from "@/chat/dates";
 import { extractChatTimeline } from "@/chat/timeline";
+import { extractLifestyleMentions } from "@/lifestyle/extract";
 
 export interface ExtractedFact {
   title: string;
@@ -51,12 +52,14 @@ export interface ChatAnalysis {
   reelQueries: string[];
   timeline: { at: string | null; event: string; situation: string; outcome?: string }[];
   summary: string;
+  lifestyleMentions: Array<{ kind: string; title: string; quote: string; whenHint?: string }>;
 }
 
 const FOODS = [
   "chai", "tea", "coffee", "nashta", "breakfast", "biryani", "pizza", "burger", "pasta",
   "grocery", "rice", "roti", "paratha", "nihari", "karahi", "dessert", "cake", "chocolate",
   "ice cream", "mango", "apple", "juice", "water", "dinner", "lunch", "samosa", "nihari",
+  "japanese", "sushi", "ramen", "chinese", "thai", "burger", "pizza",
 ];
 const PLACES = [
   "class", "university", "uni", "office", "home", "hostel", "campus", "market", "mall",
@@ -241,6 +244,7 @@ export function analyzeWhatsAppChat(
   const places = unique(wordHits(PLACES, allJoined));
   const activities = unique(wordHits(ACTIVITIES, allJoined));
   const familyMentions = unique(wordHits(FAMILY, allJoined), 8);
+  const lifestyleMentions = extractLifestyleMentions([...partnerTexts, ...userTexts]);
 
   const calendar = extractChatCalendar(messages);
   const dates: ChatAnalysis["dates"] = calendar.map((e) => ({
@@ -403,5 +407,6 @@ export function analyzeWhatsAppChat(
     reelQueries: reelQueriesFromChat({ likes, foods, activities, topics: [...topicHits.entries()].map(([topic, count]) => ({ topic, count })), places }),
     timeline: extractChatTimeline(messages),
     summary,
+    lifestyleMentions,
   };
 }

@@ -1,3 +1,5 @@
+import type { FoodPrefs, LifestyleHints, LifestyleView } from "@/lifestyle/types";
+
 export type Emotion =
   | "ANGER"
   | "SADNESS"
@@ -54,7 +56,14 @@ export type CommandIntent =
   | "MODIFY_TONE"
   | "SHOULD_APOLOGIZE"
   | "CHEER_UP"
-  | "NOTHING";
+  | "NOTHING"
+  | "FIND_FOOD"
+  | "FIND_RESTAURANT"
+  | "FIND_ORDER"
+  | "DATE_NIGHT"
+  | "FIND_PLACE"
+  | "PLAN_DAY"
+  | "PLAN_WEEKEND";
 
 export type RecommendedAction =
   | "APOLOGIZE"
@@ -101,6 +110,7 @@ export interface ParsedCommand {
   achievement: string | null;
   urgency: Priority;
   style: "short" | "simple" | "romantic" | "supportive" | "apology";
+  lifestyle?: LifestyleHints;
 }
 
 export interface HistoryMatch {
@@ -169,6 +179,11 @@ export interface EngineContext {
     foods: string[];
     activities: string[];
   };
+  city: string | null;
+  food: { user: FoodPrefs; partner: FoodPrefs };
+  savedVenues: { venueKey: string; name: string }[];
+  venueVisits: { venueKey: string }[];
+  pendingLifestyle: Array<{ title: string; quote: string; kind: string }>;
 }
 
 export interface PreparePlan {
@@ -183,7 +198,7 @@ export interface PreparePlan {
 
 export interface PreparedAction {
   id: string;
-  kind: "calendar" | "reminder_user" | "reminder_her" | "message" | "card" | "reel" | "space";
+  kind: "calendar" | "reminder_user" | "reminder_her" | "message" | "card" | "reel" | "space" | "save_venue" | "add_plan";
   title: string;
   detail: string;
   required: boolean;
@@ -264,4 +279,5 @@ export interface CommandResultView {
   relationshipState: RelationshipState;
   priority: Priority;
   quietUntil: string | null;
+  lifestyle: LifestyleView | null;
 }

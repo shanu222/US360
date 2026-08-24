@@ -34,6 +34,15 @@ const schema = z.object({
     .nullable(),
   reelUrl: z.string().optional().nullable(),
   imageUrls: z.array(z.string()).optional(),
+  venue: z
+    .object({
+      key: z.string(),
+      name: z.string(),
+      city: z.string(),
+      kind: z.string(),
+    })
+    .optional()
+    .nullable(),
   share: z
     .object({
       caption: z.string(),
@@ -80,6 +89,44 @@ export async function POST(req: Request) {
         },
       });
       done.push("card");
+    }
+
+    if (selected.has("save_venue") && body.venue) {
+      await db.savedVenue.upsert({
+        where: { userId_venueKey: { userId: user.id, venueKey: body.venue.key } },
+        update: { liked: true, name: body.venue.name, city: body.venue.city, kind: body.venue.kind },
+        create: {
+          userId: user.id,
+          venueKey: body.venue.key,
+          name: body.venue.name,
+          city: body.venue.city,
+          kind: body.venue.kind,
+        },
+      });
+      done.push("save_venue");
+    }
+
+    if (selected.has("add_plan") && body.venue) {
+      const when = body.scheduleAt ? new Date(body.scheduleAt) : new Date(Date.now() + 6 * 3600_000);
+      await db.lifestylePlan.create({
+        data: {
+          userId: user.id,
+          title: `Plan: ${body.venue.name}`,
+          kind: body.venue.kind === "place" ? "place" : "dinner",
+          city: body.venue.city,
+          venueName: body.venue.name,
+          venueKey: body.venue.key,
+          scheduledAt: when,
+          notes: "Saved from a command. Confirm reservation yourself.",
+        },
+      });
+      await savePendingEvent(user.id, {
+        title: `${body.venue.name} (${body.venue.city})`,
+        type: "EVENT",
+        startAt: when.toISOString(),
+        notes: "Restaurant / place plan from US360. Confirm hours before you go.",
+      });
+      done.push("add_plan");
     }
 
     if (selected.has("reminder_her") && body.reminderPlan && !body.sendNow) {

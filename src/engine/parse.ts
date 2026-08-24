@@ -2,6 +2,7 @@ import type { CommandIntent, Emotion, ParsedCommand, Priority, SituationKind } f
 import { EMOTION_LEXICON } from "@/engine/knowledge/emotions";
 import { SITUATION_LEXICON, UNCLEAR_FAULT_PHRASES, USER_FAULT_PHRASES } from "@/engine/knowledge/situations";
 import { includesAny, topScored } from "@/engine/score";
+import { parseLifestyleHints } from "@/lifestyle/parse";
 
 function addDays(base: Date, days: number) {
   const d = new Date(base);
@@ -106,6 +107,8 @@ export function parseCommand(raw: string, previous?: ParsedCommand | null, now =
   if (cheer) intents.push("CHEER_UP");
   if (followUp) intents.push("MODIFY_TONE");
   if (/\bexam|birthday|anniversary|tomorrow|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|meeting\b/.test(lower)) intents.push("SAVE_EVENT");
+  const lifestyle = parseLifestyleHints(text, now);
+  for (const intent of lifestyle.intents) intents.push(intent);
   if (!intents.length) intents.push(emotions.length || situations.length ? "ADVICE" : "ADVICE");
 
   const noRomantic = /\bdon'?t send (anything )?romantic|no romantic|not romantic\b/i.test(lower);
@@ -152,7 +155,20 @@ export function parseCommand(raw: string, previous?: ParsedCommand | null, now =
         : /\bshort|simple/.test(lower)
           ? "simple"
           : "supportive",
+    lifestyle,
   };
+
+  const lifestyleOnly =
+    lifestyle.intents.length > 0 &&
+    !wantsCard &&
+    !wantsReel &&
+    !shouldApologize &&
+    !giveSpace &&
+    parsed.primaryEmotion === "UNKNOWN" &&
+    parsed.primarySituation === "UNKNOWN";
+  if (lifestyleOnly) {
+    parsed.wantsMessage = lifestyle.intents.includes("DATE_NIGHT") || lifestyle.intents.includes("PLAN_DAY") || lifestyle.intents.includes("PLAN_WEEKEND");
+  }
 
   if (parsed.quietHours) parsed.intents.push("GIVE_SPACE");
   return parsed;

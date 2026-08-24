@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getPrimaryRelationship } from "@/server/auth";
+import { foodPrefsFromMap, loadLifestyleMemory } from "@/lifestyle/build";
 import type { EngineContext, EngineProfile, HistoryMatch, ParsedCommand } from "@/engine/types";
 
 function pref(map: Map<string, string>, key: string) {
@@ -59,6 +60,11 @@ export async function loadEngineContext(userId: string): Promise<EngineContext> 
     facebook: pref(prefs, "partner_facebook"),
     email: pref(prefs, "partner_email"),
   };
+
+  const partnerFood = foodPrefsFromMap(prefs, "partner");
+  partnerFood.cuisines = [...new Set([...partnerFood.cuisines, ...profile.foods])];
+  partnerFood.dishes = [...new Set([...partnerFood.dishes, ...profile.foods])];
+  const userFood = foodPrefsFromMap(prefs, "user");
 
   const now = new Date();
   const [upcoming, recentSituations, recentCards, recentReels, recentMessages] = await Promise.all([
@@ -169,14 +175,17 @@ export async function loadEngineContext(userId: string): Promise<EngineContext> 
     };
     if (chat.likes.length) profile.likes = [...new Set([...profile.likes, ...chat.likes])].slice(0, 12);
     if (chat.dislikes.length) profile.dislikes = [...new Set([...profile.dislikes, ...chat.dislikes])].slice(0, 12);
-    if (chat.foods.length) profile.foods = [...new Set([...profile.foods, ...chat.foods])].slice(0, 12);
+    if (chat.foods.length) {
+      profile.foods = [...new Set([...profile.foods, ...chat.foods])].slice(0, 12);
+      partnerFood.dishes = [...new Set([...partnerFood.dishes, ...chat.foods])].slice(0, 12);
+    }
     if (chat.activities.length) profile.activities = [...new Set([...profile.activities, ...chat.activities])].slice(0, 12);
     if (/short/i.test(chat.style.join(" ")) && !pref(prefs, "message_length")) profile.messageLength = "short";
   } catch {
     /* import table may be missing in older DBs */
   }
 
-  return {
+  const result: EngineContext = {
     now,
     quietUntil: user.settings?.quietUntil ?? null,
     profile,
@@ -188,5 +197,23 @@ export async function loadEngineContext(userId: string): Promise<EngineContext> 
     history,
     lastParse,
     chat,
+    city: user.city || pref(prefs, "user_city") || null,
+    food: { user: userFood, partner: partnerFood },
+    savedVenues: [],
+    venueVisits: [],
+    pendingLifestyle: [],
   };
+
+  try {
+    const memory = await loadLifestyleMemory(userId);
+    result.savedVenues = memory.savedVenues.map((s) => ({ venueKey: s.venueKey, name: s.name }));
+    result.venueVisits = memory.venueVisits.map((s) => ({ venueKey: s.venueKey }));
+    const imported = await db.chatImport.findFirst({ where: { userId }, orderBy: { createdAt: "desc" } });
+    const analysis = (imported?.analysis ?? {}) as { pendingLifestyle?: Array<{ title: string; quote: string; kind: string }> };
+    result.pendingLifestyle = analysis.pendingLifestyle ?? [];
+  } catch {
+    /* lifestyle tables may be missing until migrate */
+  }
+
+  return result;
 }

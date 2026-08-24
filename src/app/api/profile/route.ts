@@ -57,6 +57,10 @@ export async function PUT(req: Request) {
         create: { relationshipId: relationship.id, key, value },
       });
     }
+    const city = body.values?.user_city?.trim();
+    if (city) {
+      await db.user.update({ where: { id: user.id }, data: { city } });
+    }
     return jsonOk({ ok: true });
   } catch (error) {
     return handleApiError(error);

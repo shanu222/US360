@@ -171,6 +171,12 @@ See [docs/EMAIL.md](docs/EMAIL.md) and `/docs/email` for the external mail steps
 
 ---
 
+## City food and places
+
+Set a **city only** (no home address). Ask “What should we eat tonight?” or “What should we visit in Lahore?” The command engine scores restaurants and places from a Pakistan city catalog plus optional Google Places / Foursquare / OpenStreetMap. Results are labeled catalog vs live-verified. See [docs/LIFESTYLE.md](docs/LIFESTYLE.md) and `/explore`.
+
+---
+
 ## Instagram integration
 
 Official Meta/Instagram OAuth only. US360 never asks for or stores Instagram passwords, never scrapes, and never automates the Instagram UI.

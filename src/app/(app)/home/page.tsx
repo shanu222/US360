@@ -16,6 +16,7 @@ const QUICK = [
   { href: "/reels", label: "Send a Reel", emoji: "🎬" },
   { href: "/cards", label: "Create a Card", emoji: "🎨" },
   { href: "/ideas", label: "Make Her Smile", emoji: "🎁" },
+  { href: "/explore", label: "Eat / go out", emoji: "🍽️" },
   { href: "/calendar", label: "View Calendar", emoji: "📅" },
 ];
 

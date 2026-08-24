@@ -40,6 +40,7 @@ export function OnboardingFlow({ defaultTimezone }: { defaultTimezone: string })
     afternoonTime: "14:00",
     eveningTime: "19:00",
     nightTime: "22:00",
+    city: "",
   });
 
   function toggleStyle(style: string) {
@@ -109,6 +110,20 @@ export function OnboardingFlow({ defaultTimezone }: { defaultTimezone: string })
               <div>
                 <Label>Timezone</Label>
                 <Input value={data.timezone} onChange={(e) => setData({ ...data, timezone: e.target.value })} />
+              </div>
+              <div>
+                <Label>Your city (optional — city only, no home address)</Label>
+                <Input
+                  list="pk-cities"
+                  placeholder="Islamabad"
+                  value={data.city}
+                  onChange={(e) => setData({ ...data, city: e.target.value })}
+                />
+                <datalist id="pk-cities">
+                  {["Islamabad", "Rawalpindi", "Lahore", "Karachi", "Peshawar", "Quetta", "Multan", "Faisalabad", "Gujranwala", "Sialkot", "Hyderabad", "Bahawalpur", "Abbottabad", "Murree", "Gilgit", "Skardu"].map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
               </div>
             </div>
           )}
@@ -211,6 +226,7 @@ export function OnboardingFlow({ defaultTimezone }: { defaultTimezone: string })
               <p>US360 stores the profile, memories, dates, messages, cards, and Reels you choose to save — so it can help you remember and communicate with more care.</p>
               <p>AI receives only the context you allow in Settings. Generated text is a suggestion, never an automatic send.</p>
               <p>Instagram, if connected, uses official OAuth. We never ask for a social password or scrape accounts.</p>
+              <p>City is optional for food and place suggestions. US360 does not store a home address and does not track GPS unless you later opt in.</p>
               <p>You can export or delete memories, relationship data, or your entire account from Settings at any time.</p>
             </div>
           )}

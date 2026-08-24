@@ -32,6 +32,14 @@ function ctx(over: Partial<EngineContext> = {}): EngineContext {
     ],
     lastParse: null,
     chat: { likes: ["chai"], dislikes: [], topics: ["class"], style: ["Short messages"], timeline: [], conflictSignals: 5, avgPartnerLength: 40, reelQueries: ["chai reel"], foods: ["biryani"], activities: [] },
+    city: "Islamabad",
+    food: {
+      user: { cuisines: [], dishes: [], restaurants: [], drinks: [], desserts: [], dislikes: [], allergies: [] },
+      partner: { cuisines: ["pakistani"], dishes: ["biryani", "burger"], restaurants: [], drinks: ["chai"], desserts: ["brownie"], dislikes: [], allergies: [] },
+    },
+    savedVenues: [],
+    venueVisits: [],
+    pendingLifestyle: [],
     ...over,
   };
 }

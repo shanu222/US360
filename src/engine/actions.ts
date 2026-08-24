@@ -35,6 +35,7 @@ export function buildActions(opts: {
   hasMessage: boolean;
   hasCard: boolean;
   hasReel: boolean;
+  hasLifestyle?: boolean;
 }): PreparedAction[] {
   const { parsed, decision } = opts;
   const actions: PreparedAction[] = [];
@@ -108,6 +109,25 @@ export function buildActions(opts: {
       detail: decision.reelReason ?? "Only if a Reel is still appropriate.",
       required: false,
       selected: parsed.wantsReel && decision.priority !== "CRITICAL",
+    });
+  }
+
+  if (opts.hasLifestyle) {
+    actions.push({
+      id: "save_venue",
+      kind: "save_venue",
+      title: "Save the top restaurant / place",
+      detail: "Keeps it in food memory so later suggestions know what you liked.",
+      required: false,
+      selected: true,
+    });
+    actions.push({
+      id: "add_plan",
+      kind: "add_plan",
+      title: "Add this outing to the plan",
+      detail: "Stores a city plan you can open later. Optionally also add a calendar reminder.",
+      required: false,
+      selected: Boolean(opts.parsed.lifestyle?.intents.includes("PLAN_DAY") || opts.parsed.lifestyle?.intents.includes("PLAN_WEEKEND") || opts.parsed.lifestyle?.intents.includes("DATE_NIGHT")),
     });
   }
 

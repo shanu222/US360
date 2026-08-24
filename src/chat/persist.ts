@@ -100,6 +100,12 @@ export async function persistChatAnalysis(opts: {
             quote: e.quote,
             confidence: e.confidence,
           })),
+        pendingLifestyle: (analysis.lifestyleMentions ?? []).map((m) => ({
+          kind: m.kind,
+          title: m.title,
+          quote: m.quote,
+          whenHint: m.whenHint,
+        })),
         reelQueries: analysis.reelQueries,
         timeline: analysis.timeline,
         promises: analysis.promises,

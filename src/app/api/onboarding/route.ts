@@ -23,6 +23,7 @@ const schema = z.object({
   afternoonTime: z.string(),
   eveningTime: z.string(),
   nightTime: z.string(),
+  city: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
     await db.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: user.id },
-        data: { timezone: body.timezone, language: body.language ?? "en" },
+        data: { timezone: body.timezone, language: body.language ?? "en", city: body.city?.trim() || undefined },
       });
 
       const relationship = await tx.relationship.create({
@@ -47,6 +48,13 @@ export async function POST(req: Request) {
           timezone: body.timezone,
         },
       });
+      if (body.city?.trim()) {
+        await tx.preference.upsert({
+          where: { relationshipId_key: { relationshipId: relationship.id, key: "user_city" } },
+          update: { value: body.city.trim() },
+          create: { relationshipId: relationship.id, key: "user_city", value: body.city.trim() },
+        });
+      }
 
       for (const category of FAVORITE_CATEGORIES) {
         const raw = body.favorites[category];

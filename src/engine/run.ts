@@ -6,6 +6,7 @@ import { decideCommand } from "@/engine/decide";
 import { composeMessage } from "@/engine/templates";
 import { buildSharePack, pickBestReel } from "@/engine/reels";
 import { buildActions, buildReminderPlan } from "@/engine/actions";
+import { buildLifestyle } from "@/lifestyle/build";
 import type { CommandResultView, ParsedCommand } from "@/engine/types";
 import type { CalendarEventType, Prisma } from "@prisma/client";
 
@@ -86,12 +87,15 @@ export async function runCommand(opts: {
     /* drafts persist when the user applies actions */
   }
 
+  const lifestyle = await buildLifestyle({ userId: opts.userId, command: opts.command, parsed, ctx });
+
   const actions = buildActions({
     parsed,
     decision,
     hasMessage: Boolean(draftedMessage && decision.recommendedAction !== "GIVE_SPACE"),
     hasCard: Boolean(card),
     hasReel: Boolean(reel),
+    hasLifestyle: Boolean(lifestyle && (lifestyle.restaurants.length || lifestyle.places.length || lifestyle.dateNight || lifestyle.dayPlan)),
   });
 
   const view: CommandResultView = {
@@ -116,6 +120,7 @@ export async function runCommand(opts: {
     relationshipState: decision.relationshipState,
     priority: decision.priority,
     quietUntil: decision.quietUntil,
+    lifestyle,
   };
 
   let runId: string | null = null;

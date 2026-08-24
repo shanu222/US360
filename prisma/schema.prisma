@@ -22,6 +22,7 @@ model User {
   image         String?
   timezone      String    @default("UTC")
   language      String    @default("en")
+  city          String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -50,6 +51,9 @@ model User {
   chatImports         ChatImport[]
   commandRuns         CommandRun[]
   outboundSends       OutboundSend[]
+  savedVenues         SavedVenue[]
+  venueVisits         VenueVisit[]
+  lifestylePlans      LifestylePlan[]
 
   @@index([email])
 }
@@ -759,6 +763,8 @@ model UserSettings {
   autoFacebook          Boolean        @default(false)
   autoWhatsapp          Boolean        @default(false)
   autoEmail             Boolean        @default(false)
+  diningBudget          String?
+  preciseLocationOptIn  Boolean        @default(false)
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
@@ -816,6 +822,97 @@ model OutboundSend {
 
   @@index([userId])
   @@index([status])
+  @@index([scheduledAt])
+}
+
+model CachedVenue {
+  id             String    @id @default(cuid())
+  key            String    @unique
+  provider       String
+  providerId     String?
+  kind           String
+  name           String
+  city           String
+  area           String?
+  address        String?
+  lat            Float?
+  lng            Float?
+  cuisine        String[]  @default([])
+  categories     String[]  @default([])
+  priceRange     String?
+  hoursJson      Json?
+  popularDishes  String[]  @default([])
+  menuItems      Json?
+  venueType      String?
+  familyFriendly Boolean?
+  outdoor        Boolean?
+  delivery       Boolean?
+  reservation    String?
+  phone          String?
+  website        String?
+  social         Json?
+  mapsUrl        String?
+  rating         Float?
+  reviewCount    Int?
+  source         String
+  freshness      String
+  lastVerifiedAt DateTime?
+  raw            Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([city, kind])
+  @@index([provider])
+}
+
+model SavedVenue {
+  id        String   @id @default(cuid())
+  userId    String
+  venueKey  String
+  name      String
+  city      String
+  kind      String
+  liked     Boolean  @default(true)
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, venueKey])
+  @@index([userId])
+}
+
+model VenueVisit {
+  id        String   @id @default(cuid())
+  userId    String
+  venueKey  String
+  name      String
+  city      String
+  visitedAt DateTime @default(now())
+  notes     String?  @db.Text
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([visitedAt])
+}
+
+model LifestylePlan {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  kind        String
+  city        String?
+  venueName   String?
+  venueKey    String?
+  scheduledAt DateTime?
+  notes       String?   @db.Text
+  status      String    @default("planned")
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
   @@index([scheduledAt])
 }
 
