@@ -27,6 +27,16 @@ type Settings = {
   quietHoursStart: string;
   quietHoursEnd: string;
   timezone?: string;
+  whatsappNumber?: string | null;
+  whatsappReminders?: boolean;
+  whatsapp?: {
+    configured: boolean;
+    hasToken: boolean;
+    hasPhoneNumberId: boolean;
+    hasTemplate: boolean;
+    webhookUrl: string;
+    docs: string;
+  };
 };
 
 export default function SettingsPage() {
@@ -58,6 +68,71 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <h1 className="font-display text-4xl text-navy">Settings</h1>
+
+      <Card>
+        <CardTitle>WhatsApp reminders</CardTitle>
+        {settings.whatsapp?.configured ? (
+          <p className="mt-2 text-sm text-muted">
+            Official Cloud API is configured on the server. Reminders go to your number after you opt in — never through a
+            personal WhatsApp login or browser bot.
+          </p>
+        ) : (
+          <p className="mt-2 text-sm text-muted">
+            WhatsApp sending is not active yet. Calendar reminders still work in the app, by email, and by web push. To
+            enable WhatsApp, a Meta Cloud API token, phone number ID, and an approved template must be added on the server.
+            The product will not pretend a WhatsApp message was sent until then.
+          </p>
+        )}
+        <div className="mt-4 space-y-4">
+          <div>
+            <Label>Your WhatsApp number (E.164, digits with country code)</Label>
+            <Input
+              inputMode="tel"
+              placeholder="923001234567"
+              defaultValue={settings.whatsappNumber ?? ""}
+              onBlur={(e) => save({ whatsappNumber: e.target.value.trim() })}
+            />
+          </div>
+          <Row
+            label="Send calendar reminders on WhatsApp"
+            checked={Boolean(settings.whatsappReminders) && Boolean(settings.whatsapp?.configured)}
+            onChange={(v) => {
+              if (v && !settings.whatsapp?.configured) {
+                toast.error("WhatsApp Cloud API is not configured on the server yet.");
+                return;
+              }
+              save({ whatsappReminders: v });
+            }}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              disabled={!settings.whatsapp?.configured}
+              onClick={async () => {
+                const res = await fetch("/api/integrations/whatsapp", { method: "POST" });
+                const json = await res.json();
+                if (!res.ok) return toast.error(json.error ?? "Could not send a test message.");
+                toast.success("Test reminder accepted by Meta.");
+              }}
+            >
+              Send test reminder
+            </Button>
+            <Button asChild variant="ghost">
+              <a href="/docs/whatsapp">Setup guide</a>
+            </Button>
+          </div>
+          <p className="text-xs text-muted">
+            WhatsApp reminders also need Notifications and Events enabled. Missing:{" "}
+            {[
+              !settings.whatsapp?.hasToken && "access token",
+              !settings.whatsapp?.hasPhoneNumberId && "phone number ID",
+              !settings.whatsapp?.hasTemplate && "approved template name",
+            ]
+              .filter(Boolean)
+              .join(", ") || "nothing — Cloud API looks ready."}
+          </p>
+        </div>
+      </Card>
 
       <Card>
         <CardTitle>WhatsApp chat</CardTitle>

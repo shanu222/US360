@@ -5,7 +5,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { redirect } from "next/navigation";
-import { LoveCard } from "@/components/love-card";
+import { DownloadableCard } from "@/components/downloadable-card";
 
 export default async function DailyLovePage() {
   const session = await auth();
@@ -59,7 +59,7 @@ export default async function DailyLovePage() {
       <div className="grid gap-4 md:grid-cols-2">
         {cards.map((c) => (
           <div key={c.id} className="space-y-3">
-            <LoveCard message={c.message} themeId={c.theme} kicker={c.category.replaceAll("_", " ")} />
+            <DownloadableCard message={c.message} themeId={c.theme} id={c.id} />
             <Button asChild size="sm">
               <Link href="/cards">Open in studio</Link>
             </Button>

@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     const stats = (imported?.stats ?? {}) as { missYouCount?: number };
 
     const custom = body.message?.trim();
-    let copy = custom ? { message: custom, kicker: body.occasion ?? "From your chat" } : null;
+    let copy = custom ? { message: custom, kicker: body.occasion ?? "" } : null;
     if (!copy && (analysis.likes?.length || analysis.foods?.length || analysis.topics?.length)) {
       copy = composeChatCard({
         category: body.category,

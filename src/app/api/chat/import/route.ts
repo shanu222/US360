@@ -59,7 +59,8 @@ export async function POST(req: Request) {
       places: analysis.places,
       topics: analysis.topics,
       communicationStyle: analysis.communicationStyle,
-      calendarEvents: analysis.calendarEvents.length,
+      calendarEvents: analysis.calendarEvents.filter((e) => e.confidence === "high").length,
+      pendingCalendar: analysis.calendarEvents.filter((e) => e.confidence !== "high").length,
       reelQueries: analysis.reelQueries,
     });
   } catch (error) {

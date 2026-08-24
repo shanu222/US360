@@ -90,6 +90,16 @@ export async function persistChatAnalysis(opts: {
         boundaries: analysis.boundaries,
         dates: analysis.dates,
         calendarEvents: analysis.calendarEvents,
+        pendingCalendar: (analysis.calendarEvents ?? [])
+          .filter((e) => e.confidence !== "high")
+          .map((e) => ({
+            title: e.title,
+            at: e.at,
+            type: e.type,
+            hint: e.hint,
+            quote: e.quote,
+            confidence: e.confidence,
+          })),
         reelQueries: analysis.reelQueries,
         timeline: analysis.timeline,
         promises: analysis.promises,
@@ -156,7 +166,9 @@ export async function persistChatAnalysis(opts: {
     dislikeKeys.add(dislike.toLowerCase());
   }
 
-  for (const event of (analysis.calendarEvents ?? []).slice(0, 30)) {
+  const confirmed = (analysis.calendarEvents ?? []).filter((e) => e.confidence === "high");
+
+  for (const event of confirmed.slice(0, 30)) {
     const startAt = new Date(event.at);
     if (Number.isNaN(startAt.getTime())) continue;
     const existing = await db.calendarEvent.findFirst({

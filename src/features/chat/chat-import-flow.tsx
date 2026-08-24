@@ -18,6 +18,7 @@ type Result = {
   topics: { topic: string; count: number }[];
   communicationStyle: string[];
   calendarEvents?: number;
+  pendingCalendar?: number;
   reelQueries?: string[];
 };
 
@@ -140,7 +141,7 @@ export function ChatImportFlow({ allowSkip }: { allowSkip: boolean }) {
             <div className="mt-6 space-y-4">
               <p className="text-sm leading-6 text-ink">{result.summary}</p>
               <p className="text-xs uppercase tracking-[0.2em] text-rose">
-                {result.messageCount.toLocaleString()} messages · {result.facts} details saved · {result.calendarEvents ?? 0} calendar dates · {result.partnerName}
+                {result.messageCount.toLocaleString()} messages · {result.facts} details saved · {result.calendarEvents ?? 0} confirmed dates · {result.pendingCalendar ?? 0} to confirm · {result.partnerName}
               </p>
               <ChipRow label="Reel searches" items={result.reelQueries ?? []} />
               <ChipRow label="Style" items={result.communicationStyle} />
@@ -150,7 +151,7 @@ export function ChatImportFlow({ allowSkip }: { allowSkip: boolean }) {
               <ChipRow label="Topics" items={result.topics.map((t) => t.topic)} />
               {result.dislikes.length ? <ChipRow label="Boundaries" items={result.dislikes} /> : null}
               <p className="text-xs text-muted">
-                Dated plans from the chat are now on Calendar with 7 / 3 / 1 / day-of reminders. A colorful card was painted from the same export. Reel searches are ready with a gap between shares.
+                Clear dates are on Calendar. Uncertain ones wait for your confirmation there. Reminders fire 7 / 3 / 1 / day-of.
               </p>
               <div className="grid gap-2 sm:grid-cols-3">
                 <Button className="w-full" onClick={goHome}>

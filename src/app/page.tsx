@@ -113,7 +113,7 @@ export default async function LandingPage() {
             message="I keep you in the small details — even chai after class."
             themeId="aurora"
             partnerName="her"
-            kicker="From your chat"
+            kicker=""
             className="min-h-[380px]"
           />
         </div>

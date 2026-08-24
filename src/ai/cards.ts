@@ -1,3 +1,5 @@
+import { cardKicker } from "@/lib/card-copy";
+
 export interface CardTheme {
   id: string;
   label: string;
@@ -153,6 +155,69 @@ export const CARD_THEMES: CardTheme[] = [
     text: "#3A2C1C",
     accent: "#8A6030",
   },
+  {
+    id: "garden",
+    label: "Rose garden",
+    category: "ROMANTIC",
+    background: "linear-gradient(160deg, #FBE8EE 0%, #E7A3B3 42%, #B85A72 100%)",
+    overlay: "rgba(255,255,255,0.16)",
+    text: "#3A1C24",
+    accent: "#8C3048",
+  },
+  {
+    id: "meadow",
+    label: "Meadow",
+    category: "GENERAL",
+    background: "linear-gradient(155deg, #F3F6E8 0%, #C5D989 48%, #7A9A4A 100%)",
+    overlay: "rgba(255,255,255,0.2)",
+    text: "#243018",
+    accent: "#4A6A28",
+  },
+  {
+    id: "ocean",
+    label: "Sea light",
+    category: "GENERAL",
+    background: "linear-gradient(165deg, #E4F2F6 0%, #8EC4D4 50%, #3A7A8C 100%)",
+    overlay: "rgba(255,255,255,0.18)",
+    text: "#163038",
+    accent: "#2A5A68",
+  },
+  {
+    id: "gold-leaf",
+    label: "Gold leaf",
+    category: "GENERAL",
+    background: "linear-gradient(180deg, #FFF8E8 0%, #E8C878 55%, #B88838 100%)",
+    overlay: "rgba(255,255,255,0.22)",
+    text: "#3A2C10",
+    accent: "#8A6018",
+  },
+  {
+    id: "lantern",
+    label: "Lantern night",
+    category: "GOOD_NIGHT",
+    background: "linear-gradient(150deg, #1A1428 0%, #4A2848 50%, #C47858 100%)",
+    overlay: "rgba(255,255,255,0.08)",
+    text: "#FFF4EA",
+    accent: "#F0C090",
+  },
+  {
+    id: "dusk-rose",
+    label: "Dusk rose",
+    category: "ROMANTIC",
+    background: "linear-gradient(160deg, #2A1830 0%, #8C4868 48%, #F0A090 100%)",
+    overlay: "rgba(255,255,255,0.1)",
+    text: "#FFF6F0",
+    accent: "#FFD0B8",
+  },
+  {
+    id: "marble",
+    label: "Marble",
+    category: "GENERAL",
+    background: "linear-gradient(180deg, #FBF8F4 0%, #E8E0D6 50%, #C8B8A8 100%)",
+    overlay: "rgba(255,255,255,0.32)",
+    text: "#2C2420",
+    accent: "#8A7060",
+  },
 ];
 
 export function pickTheme(category: string, recentThemeIds: string[] = []) {
@@ -174,7 +239,7 @@ export function renderCardHtml(opts: {
 }) {
   const theme = CARD_THEMES.find((t) => t.id === opts.themeId) ?? CARD_THEMES[4];
   const safe = escapeHtml(opts.message);
-  const kicker = escapeHtml(opts.occasion || theme.label);
+  const kicker = escapeHtml(cardKicker(opts.occasion));
   const who = opts.partnerName ? escapeHtml(opts.partnerName) : "";
 
   return `<!doctype html>
@@ -194,6 +259,8 @@ export function renderCardHtml(opts: {
       }
       .blob-a { position:absolute; width:420px; height:420px; border-radius:50%; filter:blur(40px); opacity:.35; background:${theme.accent}; top:-80px; right:-60px; }
       .blob-b { position:absolute; width:320px; height:320px; border-radius:50%; filter:blur(36px); opacity:.28; background:#fff; bottom:-70px; left:-50px; }
+      .petal { position:absolute; width:64px; height:36px; background:${theme.accent}; opacity:.35; border-radius:50%; }
+      .hill { position:absolute; bottom:-40px; left:-40px; right:-40px; height:220px; background:${theme.accent}; opacity:.18; border-radius:50% 50% 0 0; }
       .spark { position:absolute; width:8px; height:8px; border-radius:50%; background:${theme.accent}; opacity:.7; }
       .veil { position: absolute; inset: 36px; border: 1px solid ${theme.overlay}; border-radius: 36px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
       .inner { position: relative; z-index: 1; padding: 72px 56px; text-align: center; max-width: 560px; }
@@ -201,24 +268,25 @@ export function renderCardHtml(opts: {
       .msg { font-family: 'Cormorant Garamond', serif; font-size: 46px; line-height: 1.22; font-weight: 600; text-wrap: pretty; }
       .rule { width: 72px; height: 1px; margin: 32px auto; background: ${theme.accent}; opacity: .7; }
       .name { font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: ${theme.accent}; }
-      .brand { position:absolute; bottom:28px; left:0; right:0; text-align:center; font-size:10px; letter-spacing:.32em; text-transform:uppercase; opacity:.45; }
     </style>
   </head>
   <body>
     <div class="card">
       <div class="blob-a"></div>
       <div class="blob-b"></div>
+      <div class="hill"></div>
+      <div class="petal" style="top:12%; left:8%; transform:rotate(-18deg)"></div>
+      <div class="petal" style="top:18%; right:10%; transform:rotate(22deg)"></div>
       <div class="spark" style="top:18%; left:16%"></div>
       <div class="spark" style="top:28%; right:18%"></div>
       <div class="spark" style="bottom:22%; left:22%"></div>
       <div class="veil"></div>
       <div class="inner">
-        <div class="kicker">${kicker}</div>
+        ${kicker ? `<div class="kicker">${kicker}</div>` : ""}
         <div class="msg">${safe}</div>
         <div class="rule"></div>
         ${who ? `<div class="name">For ${who}</div>` : ""}
       </div>
-      <div class="brand">US360</div>
     </div>
   </body>
 </html>`;

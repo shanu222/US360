@@ -2,7 +2,7 @@ import { z } from "zod";
 import { requireUser } from "@/server/auth";
 import { db } from "@/lib/db";
 import { handleApiError, jsonOk } from "@/lib/api";
-import type { AutomationMode } from "@prisma/client";
+import { whatsappSetupStatus } from "@/integrations/whatsapp";
 
 export async function GET() {
   try {
@@ -12,7 +12,7 @@ export async function GET() {
       update: {},
       create: { userId: user.id },
     });
-    return jsonOk({ ...settings, timezone: user.timezone });
+    return jsonOk({ ...settings, timezone: user.timezone, whatsapp: whatsappSetupStatus() });
   } catch (error) {
     return handleApiError(error);
   }
@@ -37,6 +37,8 @@ const schema = z.object({
   quietHoursStart: z.string().optional(),
   quietHoursEnd: z.string().optional(),
   timezone: z.string().optional(),
+  whatsappNumber: z.string().optional(),
+  whatsappReminders: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request) {
@@ -49,8 +51,8 @@ export async function PATCH(req: Request) {
     }
     const settings = await db.userSettings.upsert({
       where: { userId: user.id },
-      update: rest as { automationMode?: AutomationMode },
-      create: { userId: user.id, ...(rest as object) },
+      update: rest,
+      create: { userId: user.id, ...rest },
     });
     return jsonOk(settings);
   } catch (error) {

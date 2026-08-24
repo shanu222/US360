@@ -18,7 +18,9 @@ Sometimes the best answer is: *Nothing needed right now. You already showed care
 - Before You Send tone review
 - Message Studio with optional “Sound like me”
 - Daily Love engine with morning and good-night cards
-- Card Studio (theme background + HTML/CSS typography)
+- Card Studio with premium themes, high-quality PNG download, and print-ready PDF
+- Smart calendar from uploaded WhatsApp chat exports, with confirmation for uncertain dates
+- WhatsApp Business Cloud API reminders (only when Meta credentials are configured)
 - Reel Vault with official Instagram OAuth and **Open Instagram & Share** fallback
 - Smart calendar and timezone-aware reminders
 - Make Her Smile and gift ideas (free/low budget first)
@@ -78,6 +80,7 @@ See `.env.example`. Required for a local run:
 | `AI_API_KEY` | Optional. Without it, a safe local fallback still works |
 | `CRON_SECRET` | Protects `/api/jobs/run` |
 | `META_APP_ID` / `META_APP_SECRET` | Official Instagram OAuth |
+| `WHATSAPP_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_REMINDER_TEMPLATE` | Official WhatsApp Cloud API reminders |
 | `TOKEN_ENCRYPTION_KEY` | Encrypts stored access tokens |
 | `S3_*` | Optional object storage |
 | `SMTP_*` | Optional email |
@@ -175,6 +178,20 @@ If publishing is not permitted for the connected account, actions fall back to *
 
 ---
 
+## WhatsApp reminders (official Cloud API only)
+
+Calendar events are extracted from an uploaded WhatsApp **chat export**, not from a live WhatsApp login:
+
+**Export → parse messages → detect dates & events → calendar → upcoming reminders → optional WhatsApp notification**
+
+WhatsApp messages are sent only through the **WhatsApp Business Cloud API** (or an approved provider that uses that API). The app never asks for a personal WhatsApp password and never uses browser bots.
+
+Until `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, and `WHATSAPP_REMINDER_TEMPLATE` are set, reminders still fire in-app, by email, and by web push. Settings will say WhatsApp is **not configured**. The product will not claim a WhatsApp message was sent.
+
+See [docs/WHATSAPP.md](docs/WHATSAPP.md) and the in-app page `/docs/whatsapp` for Meta Developer setup, approved templates, webhooks, and provider notes.
+
+---
+
 ## Testing
 
 ```bash
@@ -207,6 +224,7 @@ Coverage includes recommendation restraint, duplicate card fingerprints, timezon
 | Auth errors | Set a long `AUTH_SECRET` and matching `AUTH_URL` |
 | AI always uses fallback | Set `AI_API_KEY` |
 | Instagram button errors | Configure Meta app credentials, or use Open & Share |
+| WhatsApp reminders never send | Set Cloud API token, phone number ID, and an **approved** template; opt in under Settings |
 | Jobs do nothing | `POST /api/jobs/run` with `Authorization: Bearer CRON_SECRET` |
 | PWA not installing | Serve over HTTPS (localhost is fine in Chrome) |
 

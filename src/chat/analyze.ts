@@ -47,7 +47,7 @@ export interface ChatAnalysis {
   facts: ExtractedFact[];
   writingSamples: string[];
   notable: { at: string | null; sender: string; text: string }[];
-  calendarEvents: { title: string; at: string; type: string; hint: string; quote: string }[];
+  calendarEvents: { title: string; at: string; type: string; hint: string; quote: string; confidence: "high" | "medium" }[];
   reelQueries: string[];
   timeline: { at: string | null; event: string; situation: string; outcome?: string }[];
   summary: string;
@@ -398,6 +398,7 @@ export function analyzeWhatsAppChat(
       type: e.type,
       hint: e.hint,
       quote: e.quote,
+      confidence: e.confidence,
     })),
     reelQueries: reelQueriesFromChat({ likes, foods, activities, topics: [...topicHits.entries()].map(([topic, count]) => ({ topic, count })), places }),
     timeline: extractChatTimeline(messages),

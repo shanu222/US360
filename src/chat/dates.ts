@@ -7,6 +7,7 @@ export interface ChatCalendarEvent {
   type: CalendarEventType;
   hint: string;
   quote: string;
+  confidence: "high" | "medium";
 }
 
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -101,13 +102,24 @@ function eventType(text: string): CalendarEventType {
 
 function titleFor(text: string, fallbackDate: Date) {
   const act = text.match(ACTIVITY)?.[1];
-  if (act) return `${act[0].toUpperCase()}${act.slice(1)} from chat`;
-  return `Plan from chat · ${fallbackDate.toLocaleDateString()}`;
+  if (act) return `${act[0].toUpperCase()}${act.slice(1)}`;
+  return `Plan · ${fallbackDate.toLocaleDateString()}`;
 }
 
-export function extractChatCalendar(messages: ParsedMessage[]): ChatCalendarEvent[] {
+function isHighConfidence(text: string, usedSlash: boolean, usedMonth: boolean, relative: boolean) {
+  const t = text.toLowerCase();
+  if (usedSlash || usedMonth) return true;
+  if (relative && /\b(exam|birthday|anniversary|interview|appointment|orientation|presentation)\b/.test(t)) return true;
+  return false;
+}
+
+export function extractChatCalendar(messages: ParsedMessage[], now = new Date()): ChatCalendarEvent[] {
   const out: ChatCalendarEvent[] = [];
   const seen = new Set<string>();
+  const dated = messages.filter((m) => m.sentAt);
+  const chatEnd = dated.reduce((max, m) => (m.sentAt! > max ? m.sentAt! : max), dated[0]?.sentAt ?? now);
+  const recentStart = new Date(chatEnd.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const exportIsFresh = chatEnd.getTime() > now.getTime() - 7 * 24 * 60 * 60 * 1000;
 
   for (const m of messages) {
     if (m.kind !== "text" || !m.sentAt) continue;
@@ -116,12 +128,17 @@ export function extractChatCalendar(messages: ParsedMessage[]): ChatCalendarEven
     const lower = text.toLowerCase();
     const ref = m.sentAt;
     const clock = parseClock(lower);
+    const usedSlash = Boolean(parseSlashDate(lower, ref));
+    const usedMonth = Boolean(parseMonthName(lower, ref));
     let start: Date | null = parseSlashDate(lower, ref) || parseMonthName(lower, ref);
+    let relative = false;
 
     if (!start && /\b(today|aaj|tonight)\b/.test(lower) && ACTIVITY.test(lower)) {
+      relative = true;
       start = atTime(ref, clock?.hour ?? 19, clock?.minute ?? 0);
     }
     if (!start && /\b(tomorrow|kal)\b/.test(lower) && (ACTIVITY.test(lower) || clock)) {
+      relative = true;
       const d = new Date(ref);
       d.setDate(d.getDate() + 1);
       start = atTime(d, clock?.hour ?? 10, clock?.minute ?? 0);
@@ -129,14 +146,24 @@ export function extractChatCalendar(messages: ParsedMessage[]): ChatCalendarEven
     if (!start) {
       const wd = WEEKDAYS.findIndex((d) => new RegExp(`\\b${d}\\b`).test(lower));
       if (wd >= 0 && (ACTIVITY.test(lower) || clock)) {
+        relative = true;
         start = atTime(nextWeekday(ref, wd), clock?.hour ?? 10, clock?.minute ?? 0);
       }
     }
 
     if (!start) continue;
-    const now = Date.now();
-    if (start.getTime() < now - 1000 * 60 * 60 * 12) continue;
-    if (start.getTime() > now + 1000 * 60 * 60 * 24 * 400) continue;
+    if (relative && m.sentAt < recentStart) continue;
+    if (start.getTime() < now.getTime() - 1000 * 60 * 60 * 12) {
+      if (relative && exportIsFresh && m.sentAt.getTime() > chatEnd.getTime() - 3 * 24 * 60 * 60 * 1000) {
+        if (/\b(today|aaj|tonight)\b/.test(lower)) start = atTime(now, clock?.hour ?? 19, clock?.minute ?? 0);
+        else if (/\b(tomorrow|kal)\b/.test(lower)) {
+          const d = new Date(now);
+          d.setDate(d.getDate() + 1);
+          start = atTime(d, clock?.hour ?? 10, clock?.minute ?? 0);
+        } else continue;
+      } else continue;
+    }
+    if (start.getTime() > now.getTime() + 1000 * 60 * 60 * 24 * 400) continue;
 
     const key = `${start.toISOString().slice(0, 13)}:${titleFor(text, start).toLowerCase()}`;
     if (seen.has(key)) continue;
@@ -148,6 +175,7 @@ export function extractChatCalendar(messages: ParsedMessage[]): ChatCalendarEven
       type: eventType(text),
       hint: `Detected from a WhatsApp line on ${ref.toLocaleString()}.`,
       quote: clip(text),
+      confidence: isHighConfidence(lower, usedSlash, usedMonth, relative) ? "high" : "medium",
     });
     if (out.length >= 40) break;
   }

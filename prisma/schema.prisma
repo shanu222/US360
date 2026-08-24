@@ -752,6 +752,8 @@ model UserSettings {
   dailyAiLimit          Int            @default(40)
   cardRepeatDays        Int            @default(14)
   quietUntil            DateTime?
+  whatsappNumber        String?
+  whatsappReminders     Boolean        @default(false)
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 

@@ -4,13 +4,14 @@ import { authConfig } from "@/lib/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-const publicPaths = ["/", "/login", "/register", "/manifest.webmanifest", "/sw.js"];
+const publicPaths = ["/", "/login", "/register", "/docs/whatsapp", "/manifest.webmanifest", "/sw.js"];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   if (
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/jobs/run") ||
+    pathname.startsWith("/api/integrations/whatsapp/webhook") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/icons") ||
     pathname === "/favicon.ico" ||

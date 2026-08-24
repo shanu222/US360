@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getLatestChatImport } from "@/chat/queries";
-import { LoveCard } from "@/components/love-card";
+import { DownloadableCard } from "@/components/downloadable-card";
 import { CommandBar } from "@/features/assistant/command-bar";
 
 const QUICK = [
@@ -138,11 +138,11 @@ export default async function HomePage() {
 
       {latestCard ? (
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <LoveCard
+          <DownloadableCard
+            id={latestCard.id}
             message={latestCard.message}
             themeId={latestCard.theme}
             partnerName={relationship?.partnerName}
-            kicker={latestCard.category.replaceAll("_", " ")}
             className="min-h-[360px]"
           />
           <Card>
@@ -265,6 +265,8 @@ function ChatBrief({
     likes?: string[];
     topics?: { topic: string; count: number }[];
     communicationStyle?: string[];
+    pendingCalendar?: unknown[];
+    calendarEvents?: unknown[];
   };
   return (
     <Card>
@@ -275,6 +277,11 @@ function ChatBrief({
             {messageCount.toLocaleString()} messages with {partnerName ?? "your partner"}
           </CardTitle>
           <CardDescription className="mt-2 max-w-2xl">{a.summary}</CardDescription>
+          {(a.pendingCalendar?.length ?? 0) > 0 ? (
+            <p className="mt-2 text-xs text-muted">
+              {a.pendingCalendar?.length} possible dates from chat are waiting for confirmation on Calendar.
+            </p>
+          ) : null}
         </div>
         <Button asChild variant="outline" size="sm">
           <Link href="/insights">See patterns</Link>

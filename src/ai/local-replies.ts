@@ -36,7 +36,7 @@ export function composeChatCard(opts: {
     CUSTOM: [opts.notable?.[0]?.text ? clipLine(opts.notable[0].text) : `A small note, in my own words, because you matter.`],
   };
   const pool = lines[opts.category] ?? lines.CUSTOM;
-  return { message: pool[0], kicker: like || food || topic || "From your chat" };
+  return { message: pool[0], kicker: like || food || topic || "" };
 }
 
 function clipLine(value: string) {

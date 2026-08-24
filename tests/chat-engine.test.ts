@@ -116,6 +116,30 @@ describe("chat calendar extraction", () => {
     expect(events.some((e) => e.type === "EXAM")).toBe(true);
     expect(events[0]?.startAt.getTime()).toBeGreaterThan(Date.now() - 1000);
   });
+
+  it("treats 'my exam is tomorrow' as a high-confidence upcoming exam", async () => {
+    const { extractChatCalendar } = await import("@/chat/dates");
+    const { parseWhatsAppChat } = await import("@/chat/parse");
+    const now = new Date();
+    const stamp = `[${pad2(now.getDate())}/${pad2(now.getMonth() + 1)}/${now.getFullYear()}, 8:00:00 PM]`;
+    const messages = parseWhatsAppChat(`${stamp} Asma Tariq: My exam is tomorrow.`);
+    const events = extractChatCalendar(messages, now);
+    const exam = events.find((e) => /exam/i.test(e.title));
+    expect(exam?.confidence).toBe("high");
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    expect(exam?.startAt.getDate()).toBe(tomorrow.getDate());
+  });
+});
+
+describe("card branding", () => {
+  it("never prints product names on a card kicker", async () => {
+    const { cardKicker } = await import("@/lib/card-copy");
+    expect(cardKicker("From US360")).toBe("");
+    expect(cardKicker("Created by US360")).toBe("");
+    expect(cardKicker("From your chat")).toBe("");
+    expect(cardKicker("Good morning")).toBe("Good morning");
+  });
 });
 
 describe("ZIP text extraction", () => {

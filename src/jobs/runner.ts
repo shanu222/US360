@@ -1,3 +1,4 @@
+import type { CardCategory, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { buildAIContext } from "@/ai/context";
 import { decideDailyLove } from "@/ai/daily-engine";
@@ -8,7 +9,7 @@ import { fingerprint } from "@/lib/crypto";
 import { sendPush } from "@/lib/push";
 import { sendEmail } from "@/lib/email";
 import { localDateKey, localHour } from "@/lib/utils";
-import type { CardCategory, Prisma } from "@prisma/client";
+import { sendWhatsAppReminder, whatsappConfigured } from "@/integrations/whatsapp";
 
 function inQuietHours(settings: { quietHoursStart: string; quietHoursEnd: string }, hour: number) {
   const start = Number(settings.quietHoursStart.split(":")[0]);
@@ -51,7 +52,13 @@ async function markJob(jobName: string, key: string, fn: () => Promise<unknown>)
   }
 }
 
-async function notify(userId: string, type: Parameters<typeof db.notification.create>[0]["data"]["type"], title: string, body: string) {
+async function notify(
+  userId: string,
+  type: Parameters<typeof db.notification.create>[0]["data"]["type"],
+  title: string,
+  body: string,
+  whatsapp?: { title: string; when: string },
+) {
   const user = await db.user.findUnique({
     where: { id: userId },
     include: { settings: true },
@@ -67,6 +74,20 @@ async function notify(userId: string, type: Parameters<typeof db.notification.cr
   }
   if (user.settings.emailNotifications && user.email) {
     await sendEmail({ to: user.email, subject: title, text: body });
+  }
+  if (
+    whatsapp &&
+    type === "EVENT_REMINDER" &&
+    user.settings.whatsappReminders &&
+    user.settings.whatsappNumber &&
+    whatsappConfigured()
+  ) {
+    await sendWhatsAppReminder({
+      to: user.settings.whatsappNumber,
+      title: whatsapp.title,
+      when: whatsapp.when,
+      body,
+    });
   }
 }
 
@@ -189,7 +210,9 @@ export async function prepareDailyContent(now = new Date()) {
 }
 
 export async function sendEventReminders(now = new Date()) {
-  const events = await db.calendarEvent.findMany({ include: { user: { include: { settings: true } }, reminders: true } });
+  const events = await db.calendarEvent.findMany({
+    include: { user: { include: { settings: true } }, relationship: true, reminders: true },
+  });
   for (const event of events) {
     if (!event.user.settings?.notifyEvents) continue;
     if (event.user.settings.quietUntil && event.user.settings.quietUntil > now) continue;
@@ -216,13 +239,14 @@ export async function sendEventReminders(now = new Date()) {
     const key = `event:${event.id}:${diff}:${today}`;
     await markJob("event-reminder", key, async () => {
       const when = diff === 0 ? "today" : diff === 1 ? "tomorrow" : `in ${diff} days`;
+      const partner = event.relationship?.partnerName;
+      const subject = partner ? `${partner}'s ${event.title}` : event.title;
       await notify(
         event.userId,
         "EVENT_REMINDER",
         `${event.title} is ${when}`,
-        event.notes
-          ? `From your calendar: ${event.notes.slice(0, 180)} Consider a thoughtful note if it feels right.`
-          : "A gentle reminder from US360. Consider a thoughtful note if it feels right.",
+        `Reminder ❤️ ${subject} is ${when}. You may want to wish her good luck or prepare a supportive message.`,
+        { title: event.title.slice(0, 60), when },
       );
       await db.eventReminder.upsert({
         where: { eventId_daysBefore: { eventId: event.id, daysBefore: diff } },
