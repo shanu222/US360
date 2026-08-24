@@ -73,7 +73,7 @@ function parseMonthName(text: string, ref: Date): Date | null {
   const day = Number(nums[0]);
   const month = MONTHS[mon];
   const clock = parseClock(text) ?? { hour: 10, minute: 0 };
-  let year = ref.getFullYear();
+  const year = ref.getFullYear();
   let d = new Date(year, month, day, clock.hour, clock.minute, 0);
   if (d < new Date(ref.getTime() - 1000 * 60 * 60 * 24 * 2)) {
     d = new Date(year + 1, month, day, clock.hour, clock.minute, 0);

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { requireUser } from "@/server/auth";
 import { handleApiError, jsonError, jsonOk } from "@/lib/api";
-import { runCommand, savePendingEvent } from "@/engine/run";
+import { runCommand } from "@/engine/run";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 

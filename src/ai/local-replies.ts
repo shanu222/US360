@@ -67,6 +67,7 @@ export function localCardCopy(category: string, themeLabel: string, partnerName?
 }
 
 export function localMessages(intent: string, category: string) {
+  void category;
   const base = intent.trim() || "I wanted to say this carefully.";
   return {
     messages: [

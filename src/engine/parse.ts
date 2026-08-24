@@ -3,10 +3,6 @@ import { EMOTION_LEXICON } from "@/engine/knowledge/emotions";
 import { SITUATION_LEXICON, UNCLEAR_FAULT_PHRASES, USER_FAULT_PHRASES } from "@/engine/knowledge/situations";
 import { includesAny, topScored } from "@/engine/score";
 
-function addHours(base: Date, hours: number) {
-  return new Date(base.getTime() + hours * 60 * 60 * 1000);
-}
-
 function addDays(base: Date, days: number) {
   const d = new Date(base);
   d.setDate(d.getDate() + days);
