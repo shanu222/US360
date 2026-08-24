@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/input";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoveCard } from "@/components/love-card";
+import { copyCardImageToClipboard } from "@/lib/card-download";
+import { composeWhatsAppText, whatsappClickUrl } from "@/lib/whatsapp-open";
 
 type Action = {
   id: string;
@@ -98,8 +100,8 @@ export function CommandBar({ compact }: { compact?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
-  const [channels, setChannels] = useState<string[]>(["email"]);
-  const [accounts, setAccounts] = useState<Record<string, { connected: boolean; canAutoSend: boolean; fallback: string }>>({});
+  const [channels, setChannels] = useState<string[]>(["email", "whatsapp"]);
+  const [accounts, setAccounts] = useState<Record<string, { connected: boolean; canAutoSend: boolean; fallback: string; handle?: string | null }>>({});
 
   useEffect(() => {
     fetch("/api/integrations/status")
@@ -137,18 +139,31 @@ export function CommandBar({ compact }: { compact?: boolean }) {
 
   async function apply(sendNow: boolean) {
     if (!result) return;
+    if (sendNow && picked.includes("card")) {
+      const node = document.getElementById("command-card-art");
+      if (node instanceof HTMLElement) {
+        try {
+          await copyCardImageToClipboard(node);
+          toast.message("Card image copied. Paste it into the WhatsApp chat.");
+        } catch {
+          /* text + links still open in WhatsApp */
+        }
+      }
+    }
+    const sendChannels = sendNow ? Array.from(new Set([...channels, "whatsapp"])) : channels;
     const res = await fetch("/api/command/apply", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         actionIds: picked,
-        channels,
+        channels: sendChannels,
         sendNow,
         message: result.message,
         pendingEvent: result.pendingEvent,
         reminderPlan: result.reminderPlan,
         card: result.card,
         reelUrl: result.reel?.url,
+        imageUrls: [result.reel?.url].filter(Boolean),
         share: result.share,
       }),
     });
@@ -159,15 +174,32 @@ export function CommandBar({ compact }: { compact?: boolean }) {
       toast.success("Prepared. Nothing was sent until you choose Send.");
       return;
     }
+    const whatsappUrl =
+      (json.data?.whatsappUrl as string | undefined) ||
+      deliveries.find((d) => d.channel === "whatsapp")?.openUrl ||
+      whatsappClickUrl(
+        accounts.whatsapp?.handle ?? "",
+        composeWhatsAppText({
+          reminder: picked.includes("reminder_her") ? result.reminderPlan?.herMessage : null,
+          message: picked.includes("message") ? result.message : null,
+          card: picked.includes("card") ? result.card?.message : null,
+          reelUrl: picked.includes("reel") ? result.reel?.url : null,
+        }),
+      );
+    if (sendNow && whatsappUrl) {
+      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+    }
     if (!deliveries.length) {
-      toast.message("Saved locally. Choose a platform to send.");
+      toast.message("WhatsApp opened with the reminder, Reel, card, and links. You tap send.");
       return;
     }
     for (const d of deliveries) {
       if (d.sent) toast.success(`${d.channel}: sent.`);
-      else {
+      else if (d.channel === "whatsapp") {
+        toast.message("WhatsApp opened with the packed message. You tap send — nothing is auto-sent.");
+      } else {
         toast.message(`${d.channel}: ${d.reason ?? "Manual action required"}`);
-        if (d.openUrl) window.open(d.openUrl, "_blank", "noopener,noreferrer");
+        if (d.openUrl && d.channel !== "whatsapp") window.open(d.openUrl, "_blank", "noopener,noreferrer");
       }
     }
   }
@@ -360,7 +392,9 @@ export function CommandBar({ compact }: { compact?: boolean }) {
           {result.card && picked.includes("card") ? (
             <div className="space-y-3">
               <p className="text-xs uppercase tracking-[0.2em] text-rose">Card</p>
-              <LoveCard message={result.card.message} themeId={result.card.theme} kicker="" />
+              <div id="command-card-art">
+                <LoveCard message={result.card.message} themeId={result.card.theme} kicker="" />
+              </div>
               <Button size="sm" asChild>
                 <Link href="/cards">Edit in studio</Link>
               </Button>
@@ -386,8 +420,9 @@ export function CommandBar({ compact }: { compact?: boolean }) {
               })}
             </div>
             <p className="mt-3 text-xs text-muted">
-              Only email can send automatically, and only to addresses already saved (your account and her Profile
-              email). Instagram, Facebook, WhatsApp, and Reels are never auto-sent — the app opens so you tap send.
+              Send opens WhatsApp with the reminder, Reel link, card words, and image links packed in — you tap send.
+              A card image is copied when possible so you can paste it in the chat. Email can still go automatically to
+              saved addresses. Instagram and Facebook stay open-and-send. Nothing is auto-sent on WhatsApp.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => void apply(false)}>

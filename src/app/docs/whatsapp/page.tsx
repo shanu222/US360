@@ -20,7 +20,7 @@ export default function WhatsAppDocsPage() {
         <ul className="mt-3 list-disc space-y-1 pl-5 text-sm leading-6">
           <li>Upload a WhatsApp export ZIP to fill Memory, likes, and dates</li>
           <li>Calendar reminders by email, in-app, and web push</li>
-          <li>Open WhatsApp with a caption ready — you tap send</li>
+          <li>Open WhatsApp with a reminder, Reel link, card words, and image links packed in — you tap send</li>
         </ul>
       </Card>
       <p className="text-sm">

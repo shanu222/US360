@@ -1,5 +1,6 @@
 import { instagramSearchUrl } from "@/chat/dates";
 import type { Emotion, EngineContext, SituationKind } from "@/engine/types";
+import { composeWhatsAppText, whatsappClickUrl } from "@/lib/whatsapp-open";
 
 export type SavedReel = {
   id: string;
@@ -189,30 +190,42 @@ export function pickBestReel(opts: {
 }
 
 export function buildSharePack(opts: {
-  reelUrl: string;
-  caption: string;
+  reelUrl?: string | null;
+  caption?: string;
+  message?: string | null;
+  reminder?: string | null;
+  card?: string | null;
+  imageUrls?: string[];
   instagram?: string | null;
   whatsapp?: string | null;
   facebook?: string | null;
   email?: string | null;
 }): SharePack {
-  const body = [opts.caption, opts.reelUrl].filter(Boolean).join("\n");
+  const body = composeWhatsAppText({
+    reminder: opts.reminder,
+    message: opts.message ?? opts.caption,
+    card: opts.card,
+    reelUrl: opts.reelUrl,
+    imageUrls: opts.imageUrls,
+  });
   const encoded = encodeURIComponent(body);
-  const wa = (opts.whatsapp ?? "").replace(/[^\d]/g, "");
   const ig = instagramHandle(opts.instagram);
   const fb = facebookHandle(opts.facebook);
   const mail = (opts.email ?? "").trim();
+  const reel = opts.reelUrl ?? "";
   return {
     caption: body,
-    whatsapp: wa.length >= 10 ? `https://wa.me/${wa}?text=${encoded}` : `https://wa.me/?text=${encoded}`,
-    instagram: opts.reelUrl,
+    whatsapp: whatsappClickUrl(opts.whatsapp, body),
+    instagram: reel || (ig ? `https://www.instagram.com/${ig}/` : "https://www.instagram.com/"),
     instagramProfile: ig ? `https://www.instagram.com/${ig}/` : null,
     instagramDm: ig ? `https://ig.me/m/${ig}` : null,
     facebook: fb
       ? `https://www.facebook.com/${fb}`
-      : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(opts.reelUrl)}`,
+      : reel
+        ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(reel)}`
+        : "https://www.facebook.com/",
     email: mail ? `mailto:${mail}?subject=${encodeURIComponent("For you")}&body=${encoded}` : null,
-    missingWhatsapp: wa.length < 10,
+    missingWhatsapp: (opts.whatsapp ?? "").replace(/[^\d]/g, "").length < 10,
     missingInstagram: !ig,
     missingEmail: !mail,
   };

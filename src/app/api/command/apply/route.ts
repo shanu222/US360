@@ -2,6 +2,7 @@ import { z } from "zod";
 import { requireUser } from "@/server/auth";
 import { handleApiError, jsonOk } from "@/lib/api";
 import { deliverOutbound, logOutbound, type SendChannel } from "@/integrations/deliver";
+import { composeWhatsAppText, whatsappClickUrl } from "@/lib/whatsapp-open";
 import { db } from "@/lib/db";
 import { savePendingEvent } from "@/engine/run";
 import { pickTheme, renderCardHtml } from "@/ai/cards";
@@ -32,6 +33,7 @@ const schema = z.object({
     .optional()
     .nullable(),
   reelUrl: z.string().optional().nullable(),
+  imageUrls: z.array(z.string()).optional(),
   share: z
     .object({
       caption: z.string(),
@@ -90,49 +92,70 @@ export async function POST(req: Request) {
           subject: "A note for you",
           scheduledAt: new Date(body.reminderPlan.herReminderAt),
           toAddress: prefs.get("partner_email") || null,
+          openUrl: whatsappClickUrl(
+            prefs.get("partner_whatsapp"),
+            composeWhatsAppText({ reminder: body.reminderPlan.herMessage }),
+          ),
         },
       });
       done.push("reminder_her");
     }
 
+    const packed = composeWhatsAppText({
+      reminder: selected.has("reminder_her") || selected.has("reminder_user") ? body.reminderPlan?.herMessage : null,
+      message: selected.has("message") ? body.message : null,
+      card: selected.has("card") ? body.card?.message : null,
+      reelUrl: selected.has("reel") ? body.reelUrl : null,
+      imageUrls: body.imageUrls,
+    });
+    const whatsappUrl = whatsappClickUrl(prefs.get("partner_whatsapp"), packed || body.share?.caption || "");
+
     const deliveries: Array<{ channel: string; status: string; sent: boolean; openUrl?: string | null; reason?: string | null }> = [];
-    if (body.sendNow && body.channels?.length && (selected.has("message") || selected.has("reel") || selected.has("reminder_her"))) {
-      const hasReel = selected.has("reel");
-      const text = hasReel
-        ? [body.message, body.reelUrl].filter(Boolean).join("\n")
-        : body.message || body.reminderPlan?.herMessage || "";
-      for (const channel of body.channels as SendChannel[]) {
-        const openUrl =
-          channel === "whatsapp"
-            ? body.share?.whatsapp
-            : channel === "instagram"
-              ? body.share?.instagram ?? body.reelUrl
-              : channel === "facebook"
-                ? body.share?.facebook
-                : body.share?.email;
-        const emailTo = channel === "email" ? prefs.get("partner_email") || null : null;
-        const result = await deliverOutbound({
-          userId: user.id,
-          channel,
-          body: text,
-          to: emailTo,
-          openUrl,
-          purpose: hasReel ? "reel" : selected.has("reminder_her") ? "reminder" : "message",
-        });
-        await logOutbound({
-          userId: user.id,
-          channel,
-          body: text,
-          to: emailTo,
-          openUrl,
-          result,
-        });
-        deliveries.push({ channel, ...result });
+    if (body.sendNow) {
+      const channels = new Set<SendChannel>([...((body.channels ?? []) as SendChannel[]), "whatsapp"]);
+      const hasContent =
+        selected.has("message") ||
+        selected.has("reel") ||
+        selected.has("reminder_her") ||
+        selected.has("card") ||
+        Boolean(packed);
+      if (hasContent) {
+        for (const channel of channels) {
+          const openUrl =
+            channel === "whatsapp"
+              ? whatsappUrl
+              : channel === "instagram"
+                ? body.share?.instagram ?? body.reelUrl
+                : channel === "facebook"
+                  ? body.share?.facebook
+                  : body.share?.email;
+          const emailTo = channel === "email" ? prefs.get("partner_email") || null : null;
+          const result = await deliverOutbound({
+            userId: user.id,
+            channel,
+            body: packed,
+            to: emailTo,
+            openUrl,
+            purpose: selected.has("reel") ? "reel" : selected.has("reminder_her") ? "reminder" : "message",
+          });
+          const withUrl = channel === "whatsapp" ? { ...result, openUrl: whatsappUrl } : result;
+          await logOutbound({
+            userId: user.id,
+            channel,
+            body: packed,
+            to: emailTo,
+            openUrl: withUrl.openUrl,
+            result: withUrl,
+          });
+          deliveries.push({ channel, ...withUrl });
+        }
+        if (selected.has("reminder_her")) done.push("reminder_her");
+        if (selected.has("message")) done.push("message");
+        if (selected.has("reel")) done.push("reel");
       }
-      if (selected.has("reminder_her")) done.push("reminder_her");
     }
 
-    return jsonOk({ applied: done, deliveries });
+    return jsonOk({ applied: done, deliveries, whatsappUrl });
   } catch (error) {
     return handleApiError(error);
   }

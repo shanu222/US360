@@ -149,14 +149,34 @@ describe("reel picker and share links", () => {
     const pack = buildSharePack({
       reelUrl: "https://instagram.com/reel/abc",
       caption: "Thought of you.",
+      reminder: "Good luck with your exam today.",
+      card: "Proud of you.",
       instagram: "@asma",
       whatsapp: "+92 300 1234567",
       facebook: "asma.tariq",
     });
     expect(pack.whatsapp).toContain("https://wa.me/923001234567");
+    expect(pack.whatsapp).toContain(encodeURIComponent("Good luck with your exam today."));
+    expect(pack.whatsapp).toContain(encodeURIComponent("https://instagram.com/reel/abc"));
+    expect(pack.whatsapp).toContain(encodeURIComponent("Proud of you."));
     expect(pack.instagramDm).toBe("https://ig.me/m/asma");
     expect(pack.facebook).toContain("asma.tariq");
     expect(pack.missingInstagram).toBe(false);
     expect(pack.missingWhatsapp).toBe(false);
+  });
+
+  it("opens WhatsApp with reminder, Reel, and card text packed in", async () => {
+    const { composeWhatsAppText, whatsappClickUrl } = await import("@/lib/whatsapp-open");
+    const text = composeWhatsAppText({
+      reminder: "Good luck with your exam today.",
+      reelUrl: "https://instagram.com/reel/abc",
+      card: "Proud of you.",
+      imageUrls: ["https://example.com/photo.jpg"],
+    });
+    expect(text).toContain("Good luck with your exam today.");
+    expect(text).toContain("https://instagram.com/reel/abc");
+    expect(text).toContain("Proud of you.");
+    expect(text).toContain("https://example.com/photo.jpg");
+    expect(whatsappClickUrl("923001234567", text)).toContain("https://wa.me/923001234567?text=");
   });
 });

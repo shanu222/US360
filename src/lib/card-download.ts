@@ -11,6 +11,16 @@ export async function captureCardPng(node: HTMLElement) {
   });
 }
 
+export async function copyCardImageToClipboard(node: HTMLElement) {
+  const dataUrl = await captureCardPng(node);
+  const blob = await (await fetch(dataUrl)).blob();
+  if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) {
+    throw new Error("clipboard_unavailable");
+  }
+  await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+  return true;
+}
+
 export async function downloadCardFile(node: HTMLElement, format: "png" | "pdf", filename: string) {
   const dataUrl = await captureCardPng(node);
   if (format === "png") {

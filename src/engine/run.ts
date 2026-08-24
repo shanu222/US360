@@ -60,16 +60,19 @@ export async function runCommand(opts: {
       })
     : null;
   const reel = picked ? { ...picked, reason: decision.reelReason ?? picked.reason } : null;
-  const share = reel
-    ? buildSharePack({
-        reelUrl: reel.url,
-        caption: (message && message.length < 180 ? message : picked?.caption) || "Thought of you.",
-        instagram: ctx.profile.instagram,
-        whatsapp: ctx.profile.whatsapp,
-        facebook: ctx.profile.facebook,
-        email: ctx.profile.email,
-      })
-    : null;
+  const reminderPlan = buildReminderPlan(parsed, ctx.profile);
+  const draftedMessage = decision.recommendedAction === "GIVE_SPACE" ? composeMessage(parsed, ctx.profile, "space") : message;
+  const share = buildSharePack({
+    reelUrl: reel?.url,
+    message: draftedMessage,
+    reminder: reminderPlan?.herMessage,
+    card: card?.message,
+    imageUrls: [reel?.url].filter((value): value is string => Boolean(value)),
+    instagram: ctx.profile.instagram,
+    whatsapp: ctx.profile.whatsapp,
+    facebook: ctx.profile.facebook,
+    email: ctx.profile.email,
+  });
 
   if (decision.quietUntil) {
     await db.userSettings.upsert({
@@ -83,8 +86,6 @@ export async function runCommand(opts: {
     /* drafts persist when the user applies actions */
   }
 
-  const reminderPlan = buildReminderPlan(parsed, ctx.profile);
-  const draftedMessage = decision.recommendedAction === "GIVE_SPACE" ? composeMessage(parsed, ctx.profile, "space") : message;
   const actions = buildActions({
     parsed,
     decision,

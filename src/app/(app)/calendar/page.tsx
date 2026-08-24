@@ -7,6 +7,7 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/states";
+import { SendWhatsAppButton } from "@/components/send-whatsapp";
 
 const TYPES = ["BIRTHDAY", "ANNIVERSARY", "EVENT", "EXAM", "WORK", "FAMILY", "PERSONAL", "CUSTOM"];
 
@@ -172,6 +173,15 @@ export default function CalendarPage() {
                     <Badge>{e.type.toLowerCase()}</Badge>
                     {fromChat ? <Badge tone="rose">from chat</Badge> : null}
                     <Badge tone="success">reminders on</Badge>
+                    <SendWhatsAppButton
+                      reminder={
+                        e.type === "EXAM"
+                          ? `Good luck with your exam today. You've got this ❤️`
+                          : `Thinking of you for ${e.title.toLowerCase()} today ❤️`
+                      }
+                      message={`Reminder: ${e.title} — ${whenLabel(days)}`}
+                      label="Send on WhatsApp"
+                    />
                   </div>
                 </div>
               </Card>

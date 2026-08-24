@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { LoveCard } from "@/components/love-card";
 import { downloadCardFile } from "@/lib/card-download";
+import { SendWhatsAppButton } from "@/components/send-whatsapp";
 
 export function DownloadableCard({
   id,
@@ -40,7 +41,7 @@ export function DownloadableCard({
 
   return (
     <div className="space-y-3">
-      <div ref={ref}>
+      <div id={id ? `card-art-${id}` : undefined} ref={ref}>
         <LoveCard message={message} themeId={themeId} partnerName={partnerName} kicker={kicker} className={className} />
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -55,6 +56,7 @@ export function DownloadableCard({
         <Button size="sm" variant="outline" disabled={busy || !message} onClick={() => void download()}>
           {busy ? "Preparing…" : format === "png" ? "Download image" : "Download PDF"}
         </Button>
+        <SendWhatsAppButton card={message} message={message} cardNodeId={id ? `card-art-${id}` : undefined} />
       </div>
     </div>
   );
