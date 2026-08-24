@@ -117,6 +117,42 @@ export const CARD_THEMES: CardTheme[] = [
     text: "#33281F",
     accent: "#7A5A3A",
   },
+  {
+    id: "aurora",
+    label: "Aurora",
+    category: "ROMANTIC",
+    background: "linear-gradient(145deg, #1B1030 0%, #5B2A6B 42%, #E08BB4 100%)",
+    overlay: "rgba(255,255,255,0.12)",
+    text: "#FFF6F0",
+    accent: "#F6D48A",
+  },
+  {
+    id: "ruby",
+    label: "Ruby dusk",
+    category: "ROMANTIC",
+    background: "linear-gradient(160deg, #3A1020 0%, #9A3048 48%, #F0A07A 100%)",
+    overlay: "rgba(255,255,255,0.1)",
+    text: "#FFF4EC",
+    accent: "#FFD7B0",
+  },
+  {
+    id: "coral",
+    label: "Coral morning",
+    category: "GOOD_MORNING",
+    background: "linear-gradient(155deg, #FFE4D6 0%, #FFB4A2 45%, #E07A7A 100%)",
+    overlay: "rgba(255,255,255,0.22)",
+    text: "#3A1E1C",
+    accent: "#8C3038",
+  },
+  {
+    id: "champagne",
+    label: "Champagne",
+    category: "GENERAL",
+    background: "linear-gradient(180deg, #FFF6E8 0%, #F0D4A8 50%, #C9A06A 100%)",
+    overlay: "rgba(255,255,255,0.28)",
+    text: "#3A2C1C",
+    accent: "#8A6030",
+  },
 ];
 
 export function pickTheme(category: string, recentThemeIds: string[] = []) {
@@ -139,13 +175,14 @@ export function renderCardHtml(opts: {
   const theme = CARD_THEMES.find((t) => t.id === opts.themeId) ?? CARD_THEMES[4];
   const safe = escapeHtml(opts.message);
   const kicker = escapeHtml(opts.occasion || theme.label);
+  const who = opts.partnerName ? escapeHtml(opts.partnerName) : "";
 
   return `<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@300;400&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Outfit:wght@300;400;500&display=swap');
       html, body { margin: 0; padding: 0; }
       .card {
         width: 720px; height: 960px;
@@ -155,21 +192,33 @@ export function renderCardHtml(opts: {
         font-family: Outfit, sans-serif;
         position: relative; overflow: hidden;
       }
-      .veil { position: absolute; inset: 48px; border: 1px solid ${theme.overlay}; border-radius: 28px; }
-      .inner { position: relative; z-index: 1; padding: 72px; text-align: center; max-width: 560px; }
-      .kicker { letter-spacing: 0.28em; text-transform: uppercase; font-size: 12px; opacity: 0.78; margin-bottom: 28px; }
-      .msg { font-family: 'Cormorant Garamond', serif; font-size: 42px; line-height: 1.25; font-weight: 500; }
-      .name { margin-top: 36px; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: ${theme.accent}; }
+      .blob-a { position:absolute; width:420px; height:420px; border-radius:50%; filter:blur(40px); opacity:.35; background:${theme.accent}; top:-80px; right:-60px; }
+      .blob-b { position:absolute; width:320px; height:320px; border-radius:50%; filter:blur(36px); opacity:.28; background:#fff; bottom:-70px; left:-50px; }
+      .spark { position:absolute; width:8px; height:8px; border-radius:50%; background:${theme.accent}; opacity:.7; }
+      .veil { position: absolute; inset: 36px; border: 1px solid ${theme.overlay}; border-radius: 36px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+      .inner { position: relative; z-index: 1; padding: 72px 56px; text-align: center; max-width: 560px; }
+      .kicker { letter-spacing: 0.34em; text-transform: uppercase; font-size: 11px; opacity: 0.82; margin-bottom: 28px; font-weight: 500; }
+      .msg { font-family: 'Cormorant Garamond', serif; font-size: 46px; line-height: 1.22; font-weight: 600; text-wrap: pretty; }
+      .rule { width: 72px; height: 1px; margin: 32px auto; background: ${theme.accent}; opacity: .7; }
+      .name { font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: ${theme.accent}; }
+      .brand { position:absolute; bottom:28px; left:0; right:0; text-align:center; font-size:10px; letter-spacing:.32em; text-transform:uppercase; opacity:.45; }
     </style>
   </head>
   <body>
     <div class="card">
+      <div class="blob-a"></div>
+      <div class="blob-b"></div>
+      <div class="spark" style="top:18%; left:16%"></div>
+      <div class="spark" style="top:28%; right:18%"></div>
+      <div class="spark" style="bottom:22%; left:22%"></div>
       <div class="veil"></div>
       <div class="inner">
         <div class="kicker">${kicker}</div>
         <div class="msg">${safe}</div>
-        ${opts.partnerName ? `<div class="name">For ${escapeHtml(opts.partnerName)}</div>` : ""}
+        <div class="rule"></div>
+        ${who ? `<div class="name">For ${who}</div>` : ""}
       </div>
+      <div class="brand">US360</div>
     </div>
   </body>
 </html>`;

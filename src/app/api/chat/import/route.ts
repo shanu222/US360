@@ -59,6 +59,8 @@ export async function POST(req: Request) {
       places: analysis.places,
       topics: analysis.topics,
       communicationStyle: analysis.communicationStyle,
+      calendarEvents: analysis.calendarEvents.length,
+      reelQueries: analysis.reelQueries,
     });
   } catch (error) {
     return handleApiError(error);

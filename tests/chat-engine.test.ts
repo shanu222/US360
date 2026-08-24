@@ -23,7 +23,28 @@ const SAMPLE = [
   ios("Asma Tariq", "Voice call"),
   "19/07/2026, 9:41 am - Asma Tariq: Exam week is heavy but I love mango.",
   "19/07/2026, 9:42 am - Shahnawaz: We will go grocery shopping.",
+  `${futureStamp()} Asma Tariq: Exam on ${futureSlash()} at 11am`,
+  `${futureStamp()} Asma Tariq: Class tomorrow at 9am`,
 ].join("\n");
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function futureDate(days = 40) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function futureSlash(days = 40) {
+  const d = futureDate(days);
+  return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
+function futureStamp(days = 40) {
+  return `[${futureSlash(days)}, 10:00:00 AM]`;
+}
 
 describe("WhatsApp parser", () => {
   it("normalizes invisible spaces used by iOS exports", () => {
@@ -79,6 +100,21 @@ describe("WhatsApp analysis engine (no AI)", () => {
     expect(analysis.writingSamples.length).toBeGreaterThan(0);
     expect(analysis.summary).toContain("Asma Tariq");
     expect(analysis.topics.some((t) => t.topic === "class" || t.topic === "study")).toBe(true);
+    expect(analysis.calendarEvents.some((e) => /exam/i.test(e.title))).toBe(true);
+    expect(analysis.reelQueries.length).toBeGreaterThan(0);
+  });
+});
+
+describe("chat calendar extraction", () => {
+  it("turns dated WhatsApp lines into future calendar events", async () => {
+    const { extractChatCalendar } = await import("@/chat/dates");
+    const { parseWhatsAppChat } = await import("@/chat/parse");
+    const messages = parseWhatsAppChat(
+      `${futureStamp()} Asma Tariq: Exam on ${futureSlash()} at 11am\n${futureStamp()} Asma Tariq: Class tomorrow at 9am`,
+    );
+    const events = extractChatCalendar(messages);
+    expect(events.some((e) => e.type === "EXAM")).toBe(true);
+    expect(events[0]?.startAt.getTime()).toBeGreaterThan(Date.now() - 1000);
   });
 });
 

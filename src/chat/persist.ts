@@ -2,7 +2,10 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import type { ChatAnalysis } from "@/chat/analyze";
 import type { ParsedMessage } from "@/chat/parse";
-import type { MemoryCategory, Importance } from "@prisma/client";
+import type { MemoryCategory, Importance, CardCategory } from "@prisma/client";
+import { pickTheme, renderCardHtml } from "@/ai/cards";
+import { composeChatCard } from "@/ai/local-replies";
+import { fingerprint } from "@/lib/crypto";
 
 function asJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
@@ -86,6 +89,8 @@ export async function persistChatAnalysis(opts: {
         familyMentions: analysis.familyMentions,
         boundaries: analysis.boundaries,
         dates: analysis.dates,
+        calendarEvents: analysis.calendarEvents,
+        reelQueries: analysis.reelQueries,
         promises: analysis.promises,
         topics: analysis.topics,
         communicationStyle: analysis.communicationStyle,
@@ -150,7 +155,33 @@ export async function persistChatAnalysis(opts: {
     dislikeKeys.add(dislike.toLowerCase());
   }
 
-  for (const d of analysis.dates) {
+  for (const event of (analysis.calendarEvents ?? []).slice(0, 30)) {
+    const startAt = new Date(event.at);
+    if (Number.isNaN(startAt.getTime())) continue;
+    const existing = await db.calendarEvent.findFirst({
+      where: { userId, title: event.title, startAt: { gte: new Date(startAt.getTime() - 60 * 60 * 1000), lte: new Date(startAt.getTime() + 60 * 60 * 1000) } },
+    });
+    if (existing) continue;
+    const created = await db.calendarEvent.create({
+      data: {
+        userId,
+        relationshipId,
+        title: event.title,
+        type: (event.type as "BIRTHDAY" | "ANNIVERSARY" | "EVENT" | "EXAM" | "WORK" | "FAMILY" | "PERSONAL" | "CUSTOM") || "EVENT",
+        startAt,
+        timezone: "UTC",
+        notes: `${event.hint}\n“${event.quote}”`,
+        reminderDays: [7, 3, 1, 0],
+      },
+    });
+    for (const daysBefore of [7, 3, 1, 0]) {
+      await db.eventReminder.create({
+        data: { eventId: created.id, daysBefore },
+      });
+    }
+  }
+
+  for (const d of (analysis.dates ?? []).filter((x) => !x.at)) {
     const title = `${d.title} (from chat)`;
     if (memoryTitles.has(title.toLowerCase())) continue;
     await db.relationshipMemory.create({
@@ -193,6 +224,47 @@ export async function persistChatAnalysis(opts: {
     update: { chatImportStatus: "IMPORTED" },
     create: { userId, completed: true, step: 8, chatImportStatus: "IMPORTED", completedAt: new Date() },
   });
+
+  try {
+    const category = analysis.goodMorningCount ? "GOOD_MORNING" : analysis.missYouCount ? "MISS_YOU" : "ROMANTIC";
+    const theme = pickTheme(category, []);
+    const copy = composeChatCard({
+      category,
+      partnerName: analysis.partnerName,
+      likes: analysis.likes,
+      foods: analysis.foods,
+      topics: analysis.topics,
+      missYouCount: analysis.missYouCount,
+      notable: analysis.notable,
+      communicationStyle: analysis.communicationStyle,
+    });
+    if (copy.message) {
+      const html = renderCardHtml({
+        message: copy.message,
+        themeId: theme.id,
+        partnerName: analysis.partnerName,
+        occasion: copy.kicker,
+      });
+      const fp = fingerprint([userId, "import-card", copy.message, theme.id]);
+      const exists = await db.card.findFirst({ where: { userId, fingerprint: fp } });
+      if (!exists) {
+        await db.card.create({
+          data: {
+            userId,
+            relationshipId,
+            category: category as CardCategory,
+            theme: theme.id,
+            message: copy.message,
+            html,
+            status: "READY",
+            fingerprint: fp,
+          },
+        });
+      }
+    }
+  } catch {
+    // Cards are optional — the import still succeeded.
+  }
 
   return { importId: imported.id, relationshipId, analysis };
 }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getLatestChatImport } from "@/chat/queries";
+import { LoveCard } from "@/components/love-card";
 
 const QUICK = [
   { href: "/assistant", label: "What Should I Do?", emoji: "🧠" },
@@ -32,7 +33,7 @@ export default async function HomePage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [recommendation, upcoming, morningCard, nightCard, reel] = await Promise.all([
+  const [recommendation, upcoming, morningCard, nightCard, reel, dueReels, latestCard] = await Promise.all([
     db.dailyRecommendation.findFirst({
       where: { userId: user.id, date: { gte: today } },
       orderBy: { createdAt: "desc" },
@@ -51,6 +52,15 @@ export default async function HomePage() {
       orderBy: { createdAt: "desc" },
     }),
     db.reel.findFirst({ where: { userId: user.id }, orderBy: { createdAt: "desc" } }),
+    db.reelSchedule.findMany({
+      where: { userId: user.id, status: "REQUIRES_ACTION" },
+      include: { reel: true },
+      take: 3,
+    }),
+    db.card.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
   const chatImport = await getLatestChatImport(user.id).then((row) =>
     row
@@ -101,6 +111,55 @@ export default async function HomePage() {
         </div>
       </Card>
 
+      {dueReels.length ? (
+        <Card className="border-rose/30 bg-[linear-gradient(135deg,#fff6f4,#f4ece4)]">
+          <Badge tone="rose">Share with a pause</Badge>
+          <CardTitle className="mt-3">A Reel is due</CardTitle>
+          <CardDescription className="mt-2">
+            Cadence kept a gap so this doesn’t feel automatic. Open Instagram & Share when you’re ready — US360 never sends it in the background.
+          </CardDescription>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {dueReels.map((s) => (
+              <Button key={s.id} asChild>
+                <a href={s.reel.url} target="_blank" rel="noreferrer">
+                  Open Instagram & Share
+                </a>
+              </Button>
+            ))}
+            <Button asChild variant="outline">
+              <Link href="/reels">Cadence</Link>
+            </Button>
+          </div>
+        </Card>
+      ) : null}
+
+      {latestCard ? (
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <LoveCard
+            message={latestCard.message}
+            themeId={latestCard.theme}
+            partnerName={relationship?.partnerName}
+            kicker={latestCard.category.replaceAll("_", " ")}
+            className="min-h-[360px]"
+          />
+          <Card>
+            <Badge tone="rose">Painted from chat</Badge>
+            <CardTitle className="mt-3">Today’s card is ready</CardTitle>
+            <CardDescription className="mt-2">
+              Generated from likes, foods, and the way you two already talk. Share it yourself when it feels right.
+            </CardDescription>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button asChild>
+                <Link href="/cards">Open studio</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/daily-love">Daily Love</Link>
+              </Button>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
       {chatImport ? (
         <ChatBrief
           partnerName={chatImport.partnerName}
@@ -144,9 +203,12 @@ export default async function HomePage() {
                 <div key={e.id} className="flex items-center justify-between rounded-2xl bg-paper px-4 py-3">
                   <div>
                     <p className="font-medium">{e.title}</p>
-                    <p className="text-xs text-muted">{e.type} · {e.startAt.toLocaleDateString()}</p>
+                    <p className="text-xs text-muted">
+                      {e.type} · {e.startAt.toLocaleDateString()}
+                      {(e.notes ?? "").toLowerCase().includes("whatsapp") ? " · from chat" : ""}
+                    </p>
                   </div>
-                  <Badge>{e.type.toLowerCase()}</Badge>
+                  <Badge>{daysUntilLabel(e.startAt)}</Badge>
                 </div>
               ))
             )}
@@ -164,6 +226,17 @@ export default async function HomePage() {
       </div>
     </div>
   );
+}
+
+function daysUntilLabel(date: Date) {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const days = Math.round((start.getTime() - now.getTime()) / 86400000);
+  if (days <= 0) return "today";
+  if (days === 1) return "tomorrow";
+  return `in ${days}d`;
 }
 
 function Row({ href, label, ready }: { href: string; label: string; ready?: boolean }) {

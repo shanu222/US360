@@ -1,41 +1,50 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { LoveCard } from "@/components/love-card";
 
 const features = [
+  {
+    title: "WhatsApp → memory",
+    body: "Import a chat ZIP. US360 reads dates, likes, foods, and how you write — without sending the export to an AI.",
+  },
+  {
+    title: "Calendar that listens",
+    body: "Exams, classes, grocery runs, birthdays — dated lines become reminders 7 days, 3 days, tomorrow, and on the day.",
+  },
+  {
+    title: "Colorful cards",
+    body: "Aurora, ruby, coral, champagne. Copy is drafted from recent chat and behavior. You still send it yourself.",
+  },
+  {
+    title: "Reels with a gap",
+    body: "Connect Instagram officially. Search Reels from chat topics, save them, then a cadence reminds you — never a silent auto-DM.",
+  },
   {
     title: "What should I do?",
     body: "Describe a moment. Receive a calm, structured recommendation — not a lecture, and never a diagnosis.",
   },
   {
-    title: "Daily Love",
-    body: "Morning cards, evening notes, and thoughtful gestures — prepared with restraint, never on autopilot.",
-  },
-  {
-    title: "Smart Memories",
-    body: "Remember what she loves, what she asked you not to forget, and the dates that actually matter.",
-  },
-  {
-    title: "Beautiful Cards",
-    body: "Premium visual cards with real typography. Preview, edit, then share only if it feels right.",
-  },
-  {
-    title: "Reel Assistant",
-    body: "Save Reels you already love. Get a suggestion when a lighthearted share may fit — then open Instagram yourself.",
-  },
-  {
-    title: "Smart Calendar",
-    body: "Birthdays, exams, family events, and gentle reminders in your timezone. Never a flood of notifications.",
+    title: "Restraint built in",
+    body: "If you already showed care, the honest answer may be: nothing needed right now.",
   },
 ];
 
 const steps = [
-  { n: "01", t: "Tell US360 who you are caring for" },
-  { n: "02", t: "Save the details that matter" },
-  { n: "03", t: "Ask what to do — then you decide what to send" },
+  { n: "01", t: "Import the WhatsApp chat" },
+  { n: "02", t: "Calendar, cards, and Reel searches fill themselves" },
+  { n: "03", t: "You send — US360 only prepares, reminds, and spaces" },
 ];
 
 const faqs = [
+  {
+    q: "Can you read our WhatsApp chat?",
+    a: "Yes — you upload the ZIP WhatsApp already lets you export. Only the text file is read in your browser first, then stored privately. Photos stay on your device. No AI reads the full export.",
+  },
+  {
+    q: "Will US360 send Instagram Reels for me?",
+    a: "Not silently. Connect Instagram officially, search Reels from chat topics, save the ones you like, then a cadence reminds you with a gap. You tap Open Instagram & Share. Consumer accounts cannot be auto-DMed.",
+  },
   {
     q: "Will US360 send messages for me?",
     a: "No. US360 prepares suggestions. You stay in control of every message, card, and share.",
@@ -98,6 +107,15 @@ export default async function LandingPage() {
           <Button asChild size="lg" variant="outline">
             <Link href="#how">How it works</Link>
           </Button>
+        </div>
+        <div className="mx-auto mt-16 max-w-md">
+          <LoveCard
+            message="I keep you in the small details — even chai after class."
+            themeId="aurora"
+            partnerName="her"
+            kicker="From your chat"
+            className="min-h-[380px]"
+          />
         </div>
       </section>
 

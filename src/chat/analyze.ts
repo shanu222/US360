@@ -1,4 +1,5 @@
 import { guessPartnerName, type ParsedMessage } from "@/chat/parse";
+import { extractChatCalendar, reelQueriesFromChat } from "@/chat/dates";
 
 export interface ExtractedFact {
   title: string;
@@ -39,12 +40,14 @@ export interface ChatAnalysis {
   activities: string[];
   familyMentions: string[];
   boundaries: string[];
-  dates: { title: string; hint: string; type: string }[];
+  dates: { title: string; hint: string; type: string; at?: string }[];
   promises: string[];
   topics: { topic: string; count: number }[];
   facts: ExtractedFact[];
   writingSamples: string[];
   notable: { at: string | null; sender: string; text: string }[];
+  calendarEvents: { title: string; at: string; type: string; hint: string; quote: string }[];
+  reelQueries: string[];
   summary: string;
 }
 
@@ -137,7 +140,6 @@ export function analyzeWhatsAppChat(
   const partnerTexts: string[] = [];
   const userTexts: string[] = [];
   const facts: ExtractedFact[] = [];
-  const dates: ChatAnalysis["dates"] = [];
   const notable: ChatAnalysis["notable"] = [];
   const firstByDay = new Map<string, string>();
   const mediaBreakdown = { photos: 0, audio: 0, stickers: 0, video: 0, other: 0 };
@@ -238,17 +240,15 @@ export function analyzeWhatsAppChat(
   const activities = unique(wordHits(ACTIVITIES, allJoined));
   const familyMentions = unique(wordHits(FAMILY, allJoined), 8);
 
-  if (/orientation/.test(allJoined)) {
-    dates.push({ title: "Orientation / class", hint: "Mentioned in chat — confirm the exact date.", type: "EXAM" });
-  }
-  if (/exam|assignment|presentation/.test(allJoined)) {
-    dates.push({ title: "Study / exam load", hint: "Schoolwork came up often in the chat.", type: "EXAM" });
-  }
-  if (/marry|nikah|shaadi/.test(allJoined)) {
+  const calendar = extractChatCalendar(messages);
+  const dates: ChatAnalysis["dates"] = calendar.map((e) => ({
+    title: e.title,
+    hint: e.hint,
+    type: e.type,
+    at: e.startAt.toISOString(),
+  }));
+  if (/marry|nikah|shaadi/.test(allJoined) && !dates.some((d) => /nikah|shaadi|marry/i.test(d.title))) {
     dates.push({ title: "Marriage intention", hint: "Marriage was discussed in the chat — not a scheduled date.", type: "CUSTOM" });
-  }
-  if (/birthday|bday/.test(allJoined)) {
-    dates.push({ title: "Birthday mentioned", hint: "A birthday came up in chat. Add the real date in Calendar.", type: "BIRTHDAY" });
   }
 
   const promises = unique(pull(/\b(?:i (?:will|promise)|we will) ([^.!?\n]{3,80})/gi, userTexts), 8);
@@ -390,6 +390,14 @@ export function analyzeWhatsAppChat(
     facts,
     writingSamples,
     notable: notable.slice(0, 25),
+    calendarEvents: calendar.map((e) => ({
+      title: e.title,
+      at: e.startAt.toISOString(),
+      type: e.type,
+      hint: e.hint,
+      quote: e.quote,
+    })),
+    reelQueries: reelQueriesFromChat({ likes, foods, activities, topics: [...topicHits.entries()].map(([topic, count]) => ({ topic, count })), places }),
     summary,
   };
 }

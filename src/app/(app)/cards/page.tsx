@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CARD_CATEGORIES } from "@/types";
 import { CARD_THEMES } from "@/ai/cards";
 import { Button } from "@/components/ui/button";
 import { Label, Textarea } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { LoveCard } from "@/components/love-card";
 
 type SavedCard = {
   id: string;
@@ -19,8 +19,10 @@ type SavedCard = {
 
 export default function CardsPage() {
   const [category, setCategory] = useState("GOOD_MORNING");
-  const [theme, setTheme] = useState("sunrise");
+  const [theme, setTheme] = useState("aurora");
   const [message, setMessage] = useState("");
+  const [kicker, setKicker] = useState("From your chat");
+  const [partner, setPartner] = useState<string | null>(null);
   const [cards, setCards] = useState<SavedCard[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -32,6 +34,10 @@ export default function CardsPage() {
 
   useEffect(() => {
     load();
+    fetch("/api/chat/import")
+      .then((r) => r.json())
+      .then((j) => setPartner(j.data?.partnerName ?? null))
+      .catch(() => {});
   }, []);
 
   async function generate() {
@@ -44,18 +50,42 @@ export default function CardsPage() {
     const json = await res.json();
     setLoading(false);
     if (!res.ok) return toast.error(json.error ?? "Could not create card");
-    toast.success("Card ready to preview.");
+    toast.success("Card ready.");
     setMessage(json.data.message);
+    setKicker("From your chat");
     load();
   }
 
-  const selected = CARD_THEMES.find((t) => t.id === theme);
+  async function share(card: SavedCard) {
+    const text = card.message;
+    if (navigator.share) {
+      await navigator.share({ title: "US360 card", text });
+      return;
+    }
+    await navigator.clipboard.writeText(text);
+    toast.success("Copied. Paste it anywhere you send from.");
+  }
+
+  function download(card: SavedCard) {
+    const blob = new Blob([card.html || card.message], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `us360-card-${card.id}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const selected = useMemo(() => CARD_THEMES.find((t) => t.id === theme), [theme]);
 
   return (
     <div className="mx-auto max-w-6xl">
-      <h1 className="font-display text-4xl text-navy">Card studio</h1>
-      <p className="mt-2 text-muted">Visual background plus real typography — not blurry AI text baked into an image.</p>
-      <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_1fr]">
+      <p className="text-xs uppercase tracking-[0.28em] text-rose">From your WhatsApp</p>
+      <h1 className="mt-2 font-display text-4xl text-navy md:text-5xl">Colorful cards</h1>
+      <p className="mt-2 max-w-2xl text-muted">
+        Lines are drafted from chat likes, routines, and recent tone — then set in a real designed card. You still send it yourself.
+      </p>
+      <div className="mt-8 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
             {CARD_CATEGORIES.map((c) => (
@@ -65,55 +95,44 @@ export default function CardsPage() {
             ))}
           </div>
           <div>
-            <Label>Theme</Label>
-            <select className="h-12 w-full rounded-2xl border border-line bg-white px-4" value={theme} onChange={(e) => setTheme(e.target.value)}>
+            <Label>Palette</Label>
+            <div className="mt-2 grid grid-cols-4 gap-2">
               {CARD_THEMES.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.label}
-                </option>
+                <button
+                  key={t.id}
+                  onClick={() => setTheme(t.id)}
+                  className={`h-12 rounded-2xl border ${theme === t.id ? "border-navy ring-2 ring-navy/30" : "border-line"}`}
+                  style={{ background: t.background }}
+                  title={t.label}
+                />
               ))}
-            </select>
+            </div>
+            <p className="mt-2 text-xs text-muted">{selected?.label}</p>
           </div>
           <div>
             <Label>Message</Label>
-            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Leave blank to let US360 draft a short line." />
+            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Leave blank — US360 writes from the chat." />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={generate} disabled={loading}>
-              {loading ? "Creating…" : message ? "Save / render" : "Generate"}
-            </Button>
-            <Button variant="outline" onClick={() => setMessage("")}>
-              Edit text
-            </Button>
-          </div>
+          <Button onClick={generate} disabled={loading} className="w-full">
+            {loading ? "Painting…" : "Generate from chat"}
+          </Button>
         </div>
-        <div
-          className="flex min-h-[420px] items-center justify-center rounded-[2rem] p-10 text-center shadow-soft"
-          style={{ background: selected?.background, color: selected?.text }}
-        >
-          <div>
-            <p className="text-xs uppercase tracking-[0.28em] opacity-80">{selected?.label}</p>
-            <p className="mt-6 font-display text-4xl leading-snug">{message || "Your words will appear here."}</p>
-          </div>
-        </div>
+        <LoveCard message={message} themeId={theme} partnerName={partner} kicker={kicker} />
       </div>
-      <h2 className="mt-10 font-display text-2xl">Saved cards</h2>
+      <h2 className="mt-10 font-display text-2xl">Saved</h2>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {cards.map((c) => (
-          <Card key={c.id}>
-            <p className="font-display text-2xl">{c.message}</p>
-            <p className="mt-2 text-xs text-muted">
-              {c.category} · {c.theme} · {c.status}
-            </p>
-            <div className="mt-3 flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => toast.message("Open & Share", { description: "Download or share from your device. Nothing is sent automatically." })}>
+          <div key={c.id} className="space-y-3">
+            <LoveCard message={c.message} themeId={c.theme} partnerName={partner} kicker={c.category.replaceAll("_", " ")} className="min-h-[280px]" />
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => share(c)}>
                 Share
               </Button>
-              <Button size="sm" variant="outline" onClick={() => window.print()}>
+              <Button size="sm" variant="outline" onClick={() => download(c)}>
                 Download
               </Button>
             </div>
-          </Card>
+          </div>
         ))}
       </div>
     </div>

@@ -1,5 +1,49 @@
 import type { ChatMessage } from "@/ai/types";
 
+export function composeChatCard(opts: {
+  category: string;
+  partnerName?: string | null;
+  likes?: string[];
+  foods?: string[];
+  topics?: { topic: string; count: number }[];
+  missYouCount?: number;
+  notable?: { text: string }[];
+  communicationStyle?: string[];
+}) {
+  const name = opts.partnerName?.split(" ")[0] || "you";
+  const like = opts.likes?.[0];
+  const food = opts.foods?.[0];
+  const topic = opts.topics?.[0]?.topic;
+  const bilingual = opts.communicationStyle?.includes("Bilingual");
+  const lines: Record<string, string[]> = {
+    GOOD_MORNING: [
+      food ? `Good morning. I hope there’s ${food} in your day, and a little ease.` : `Good morning. I hope today treats ${name} kindly.`,
+      bilingual ? `Subah bakhair. I’m in your corner today.` : `A quiet good morning — no performance, just care.`,
+    ],
+    GOOD_NIGHT: [
+      `Sleep well. The day can stop here; you don’t have to carry it into the night.`,
+      opts.missYouCount ? `Good night. I missed you in the ordinary hours, too.` : `Rest. I’ll still be here in the morning.`,
+    ],
+    ROMANTIC: [
+      like ? `I keep you in the small details — even ${like}.` : `I keep thinking of you, without making a speech of it.`,
+    ],
+    APPRECIATION: [
+      topic ? `Thank you for how you hold ${topic}. I notice.` : `Thank you for the way you show up. I notice it.`,
+    ],
+    MISS_YOU: [`I miss you — simply, without making it heavy.`],
+    THINKING_OF_YOU: [food ? `Thinking of you, and of ${food} together.` : `Just a quiet note: you’re on my mind.`],
+    SORRY: [`I’m sorry. You deserved better from me in that moment.`],
+    CUSTOM: [opts.notable?.[0]?.text ? clipLine(opts.notable[0].text) : `A small note, in my own words, because you matter.`],
+  };
+  const pool = lines[opts.category] ?? lines.CUSTOM;
+  return { message: pool[0], kicker: like || food || topic || "From your chat" };
+}
+
+function clipLine(value: string) {
+  const v = value.replace(/\s+/g, " ").trim();
+  return v.length > 90 ? `${v.slice(0, 89).trim()}…` : v;
+}
+
 export function localCardCopy(category: string, themeLabel: string, partnerName?: string) {
   const name = partnerName || "you";
   const byCategory: Record<string, string> = {

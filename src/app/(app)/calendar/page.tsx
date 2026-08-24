@@ -45,14 +45,18 @@ export default function CalendarPage() {
     if (!res.ok) return toast.error("Could not save event");
     setTitle("");
     setNotes("");
-    toast.success("Date saved.");
+    toast.success("Reminders set for 7 days, 3 days, tomorrow, and the day.");
     load();
   }
+
+  const upcoming = items.filter((e) => new Date(e.startAt).getTime() >= Date.now() - 1000 * 60 * 60 * 12);
 
   return (
     <div className="mx-auto max-w-5xl">
       <h1 className="font-display text-4xl text-navy">Calendar</h1>
-      <p className="mt-2 text-muted">Reminders use your timezone. You can change 7 / 3 / 1 / day-of for each event.</p>
+      <p className="mt-2 text-muted">
+        WhatsApp dates land here automatically after import. You’ll get reminders 7 days, 3 days, 1 day, and on the day.
+      </p>
       <form onSubmit={add} className="card-premium mt-6 grid gap-4 p-5 md:grid-cols-2">
         <div className="md:col-span-2">
           <Label>Title</Label>
@@ -79,18 +83,34 @@ export default function CalendarPage() {
         <Button type="submit">Add date</Button>
       </form>
       <div className="mt-6 space-y-3">
-        {items.length === 0 ? (
-          <EmptyState title="No dates yet" description="Add a birthday, exam, or anything you don’t want to miss." />
+        {upcoming.length === 0 ? (
+          <EmptyState title="No upcoming dates yet" description="Import a WhatsApp ZIP or add a birthday, exam, or anything you don’t want to miss." />
         ) : (
-          items.map((e) => (
-            <Card key={e.id} className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">{e.title}</p>
-                <p className="text-sm text-muted">{new Date(e.startAt).toLocaleString()}</p>
-              </div>
-              <Badge>{e.type.toLowerCase()}</Badge>
-            </Card>
-          ))
+          upcoming.map((e) => {
+            const fromChat = (e.notes ?? "").toLowerCase().includes("whatsapp");
+            const start = new Date(e.startAt);
+            start.setHours(0, 0, 0, 0);
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            const days = Math.round((start.getTime() - now.getTime()) / 86400000);
+            const when = days <= 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
+            return (
+              <Card key={e.id} className={fromChat ? "bg-[linear-gradient(135deg,#fffdfb,#f6ece8)]" : undefined}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium">{e.title}</p>
+                    <p className="text-sm text-muted">{new Date(e.startAt).toLocaleString()} · {when}</p>
+                    {e.notes ? <p className="mt-2 text-xs text-muted">{e.notes}</p> : null}
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <Badge>{e.type.toLowerCase()}</Badge>
+                    {fromChat ? <Badge tone="rose">from chat</Badge> : null}
+                    <Badge tone="success">reminders on</Badge>
+                  </div>
+                </div>
+              </Card>
+            );
+          })
         )}
       </div>
     </div>

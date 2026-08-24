@@ -17,6 +17,8 @@ type Result = {
   places: string[];
   topics: { topic: string; count: number }[];
   communicationStyle: string[];
+  calendarEvents?: number;
+  reelQueries?: string[];
 };
 
 export function ChatImportFlow({ allowSkip }: { allowSkip: boolean }) {
@@ -138,8 +140,9 @@ export function ChatImportFlow({ allowSkip }: { allowSkip: boolean }) {
             <div className="mt-6 space-y-4">
               <p className="text-sm leading-6 text-ink">{result.summary}</p>
               <p className="text-xs uppercase tracking-[0.2em] text-rose">
-                {result.messageCount.toLocaleString()} messages · {result.facts} details saved · {result.partnerName}
+                {result.messageCount.toLocaleString()} messages · {result.facts} details saved · {result.calendarEvents ?? 0} calendar dates · {result.partnerName}
               </p>
+              <ChipRow label="Reel searches" items={result.reelQueries ?? []} />
               <ChipRow label="Style" items={result.communicationStyle} />
               <ChipRow label="Likes" items={result.likes} />
               <ChipRow label="Foods" items={result.foods} />
@@ -147,11 +150,19 @@ export function ChatImportFlow({ allowSkip }: { allowSkip: boolean }) {
               <ChipRow label="Topics" items={result.topics.map((t) => t.topic)} />
               {result.dislikes.length ? <ChipRow label="Boundaries" items={result.dislikes} /> : null}
               <p className="text-xs text-muted">
-                These now live in Memory, preferences, and your writing style. You can edit or delete anything.
+                Dated plans from the chat are now on Calendar with 7 / 3 / 1 / day-of reminders. A colorful card was painted from the same export. Reel searches are ready with a gap between shares.
               </p>
-              <Button className="w-full" onClick={goHome}>
-                Continue to home
-              </Button>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <Button className="w-full" onClick={goHome}>
+                  Continue to home
+                </Button>
+                <Button className="w-full" variant="outline" onClick={() => router.push("/calendar")}>
+                  Open calendar
+                </Button>
+                <Button className="w-full" variant="outline" onClick={() => router.push("/reels")}>
+                  Search Reels
+                </Button>
+              </div>
             </div>
           )}
         </div>

@@ -4,9 +4,10 @@ import { db } from "@/lib/db";
 import { handleApiError, jsonOk } from "@/lib/api";
 import { generateCardCopy } from "@/ai/services";
 import { pickTheme, renderCardHtml } from "@/ai/cards";
-import { localCardCopy } from "@/ai/local-replies";
+import { composeChatCard, localCardCopy } from "@/ai/local-replies";
 import { fingerprint } from "@/lib/crypto";
 import { track } from "@/lib/analytics";
+import { getLatestChatImport } from "@/chat/queries";
 import { CARD_CATEGORIES } from "@/types";
 import type { CardCategory } from "@prisma/client";
 
@@ -41,10 +42,31 @@ export async function POST(req: Request) {
       ? { id: body.theme }
       : pickTheme(body.category, recent.map((c) => c.theme));
 
+    const imported = await getLatestChatImport(user.id);
+    const analysis = (imported?.analysis ?? {}) as {
+      likes?: string[];
+      foods?: string[];
+      topics?: { topic: string; count: number }[];
+      missYouCount?: number;
+      notable?: { text: string }[];
+      communicationStyle?: string[];
+    };
+    const stats = (imported?.stats ?? {}) as { missYouCount?: number };
+
     const custom = body.message?.trim();
-    let copy = custom
-      ? { message: custom, kicker: body.occasion ?? theme.id }
-      : null;
+    let copy = custom ? { message: custom, kicker: body.occasion ?? "From your chat" } : null;
+    if (!copy && (analysis.likes?.length || analysis.foods?.length || analysis.topics?.length)) {
+      copy = composeChatCard({
+        category: body.category,
+        partnerName,
+        likes: analysis.likes,
+        foods: analysis.foods,
+        topics: analysis.topics,
+        missYouCount: stats.missYouCount,
+        notable: analysis.notable,
+        communicationStyle: analysis.communicationStyle,
+      });
+    }
     if (!copy) {
       try {
         copy = await generateCardCopy(user.id, {

@@ -5,6 +5,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { redirect } from "next/navigation";
+import { LoveCard } from "@/components/love-card";
 
 export default async function DailyLovePage() {
   const session = await auth();
@@ -57,19 +58,12 @@ export default async function DailyLovePage() {
       <h2 className="font-display text-2xl">Prepared cards</h2>
       <div className="grid gap-4 md:grid-cols-2">
         {cards.map((c) => (
-          <Card key={c.id}>
-            <Badge tone="rose">{c.category.replaceAll("_", " ")}</Badge>
-            <p className="mt-3 font-display text-2xl">{c.message}</p>
-            <p className="mt-2 text-xs uppercase tracking-wide text-muted">{c.theme}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button asChild size="sm">
-                <Link href={`/cards?id=${c.id}`}>Preview</Link>
-              </Button>
-              <Button asChild size="sm" variant="outline">
-                <Link href="/cards">Regenerate in studio</Link>
-              </Button>
-            </div>
-          </Card>
+          <div key={c.id} className="space-y-3">
+            <LoveCard message={c.message} themeId={c.theme} kicker={c.category.replaceAll("_", " ")} />
+            <Button asChild size="sm">
+              <Link href="/cards">Open in studio</Link>
+            </Button>
+          </div>
         ))}
       </div>
     </div>

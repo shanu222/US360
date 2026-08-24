@@ -3,6 +3,7 @@ import { buildAIContext } from "@/ai/context";
 import { decideDailyLove } from "@/ai/daily-engine";
 import { generateCardCopy, generateWeeklyFocus } from "@/ai/services";
 import { pickTheme, renderCardHtml } from "@/ai/cards";
+import { composeChatCard } from "@/ai/local-replies";
 import { fingerprint } from "@/lib/crypto";
 import { sendPush } from "@/lib/push";
 import { sendEmail } from "@/lib/email";
@@ -123,7 +124,33 @@ export async function prepareDailyContent(now = new Date()) {
             take: 8,
           });
           const theme = pickTheme(slot.category, recent.map((c) => c.theme));
-          const copy = await generateCardCopy(user.id, { category: slot.category, theme: theme.id });
+          let imported = null;
+          try {
+            imported = await db.chatImport.findFirst({ where: { userId: user.id }, orderBy: { createdAt: "desc" } });
+          } catch {
+            imported = null;
+          }
+          const analysis = (imported?.analysis ?? {}) as {
+            likes?: string[];
+            foods?: string[];
+            topics?: { topic: string; count: number }[];
+            notable?: { text: string }[];
+            communicationStyle?: string[];
+          };
+          const stats = (imported?.stats ?? {}) as { missYouCount?: number };
+          let copy = composeChatCard({
+            category: slot.category,
+            partnerName: user.relationships[0]?.partnerName,
+            likes: analysis.likes,
+            foods: analysis.foods,
+            topics: analysis.topics,
+            missYouCount: stats.missYouCount,
+            notable: analysis.notable,
+            communicationStyle: analysis.communicationStyle,
+          });
+          if (!copy?.message) {
+            copy = await generateCardCopy(user.id, { category: slot.category, theme: theme.id });
+          }
           const html = renderCardHtml({
             message: copy.message,
             themeId: theme.id,
@@ -179,7 +206,9 @@ export async function sendEventReminders(now = new Date()) {
         event.userId,
         "EVENT_REMINDER",
         `${event.title} is ${when}`,
-        "A gentle reminder from US360. Consider a thoughtful note if it feels right.",
+        event.notes
+          ? `From your calendar: ${event.notes.slice(0, 180)} Consider a thoughtful note if it feels right.`
+          : "A gentle reminder from US360. Consider a thoughtful note if it feels right.",
       );
       await db.eventReminder.upsert({
         where: { eventId_daysBefore: { eventId: event.id, daysBefore: diff } },
@@ -207,7 +236,9 @@ export async function processReelSchedules(now = new Date()) {
         item.userId,
         "REEL_READY",
         "A Reel is ready to share",
-        "Direct sending is not available for this account. Open Instagram & Share when you're ready.",
+        item.reel.url
+          ? `Open Instagram & Share: ${item.reel.url}`
+          : "Direct sending is not available. Open Instagram & Share when you're ready.",
       );
       return { ok: true };
     });

@@ -73,6 +73,26 @@ body {
   outline-offset: 3px;
 }
 
+@keyframes us360-float {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
+}
+
+.love-spark {
+  animation: us360-float 4.2s ease-in-out infinite;
+}
+
+.love-spark-delay {
+  animation-delay: 1.4s;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
