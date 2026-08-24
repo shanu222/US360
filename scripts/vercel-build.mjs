@@ -30,21 +30,27 @@ if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
   console.warn("AUTH_SECRET is not set. Add it in Vercel → Settings → Environment Variables.");
 }
 
-function run(command, args) {
+function run(command, args, { allowFail = false } = {}) {
   const result = spawnSync(command, args, {
     stdio: "inherit",
     shell: true,
     env: process.env,
   });
-  if (result.status !== 0) {
+  if (result.status !== 0 && !allowFail) {
     process.exit(result.status ?? 1);
   }
+  return result.status ?? 1;
 }
 
 run("npx", ["prisma", "generate"]);
 
 if (hasDatabase) {
-  run("npx", ["prisma", "migrate", "deploy"]);
+  const deploy = run("npx", ["prisma", "migrate", "deploy"], { allowFail: true });
+  if (deploy !== 0) {
+    console.warn("Migrate deploy failed. Rolling back the recorded init migration and retrying (BOM recovery).");
+    run("npx", ["prisma", "migrate", "resolve", "--rolled-back", "20260825000000_init"], { allowFail: true });
+    run("npx", ["prisma", "migrate", "deploy"]);
+  }
 } else {
   console.warn("Skipping `prisma migrate deploy` because no database URL was provided.");
 }
