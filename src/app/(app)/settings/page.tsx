@@ -65,9 +65,19 @@ export default function SettingsPage() {
           Upload a WhatsApp export ZIP. US360 reads the whole chat locally on the server — no AI — and fills Memory,
           likes, dates, and your writing style.
         </p>
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap gap-2">
           <Button asChild variant="outline">
             <a href="/import-chat?again=1">Import or replace chat</a>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              if (!confirm("Delete the uploaded WhatsApp export and extracted chat records?")) return;
+              await fetch("/api/privacy/chat", { method: "DELETE" });
+              toast.success("Uploaded chat deleted.");
+            }}
+          >
+            Delete uploaded chat
           </Button>
         </div>
       </Card>
@@ -126,8 +136,8 @@ export default function SettingsPage() {
       <Card>
         <CardTitle>Privacy</CardTitle>
         <p className="mt-2 text-sm text-muted">
-          US360 stores the profile, memories, dates, cards, messages, and Reels you save. Generated AI suggestions are drafts.
-          You can export or delete at any time.
+          US360 stores the profile, memories, dates, cards, messages, Reels, and command history you save. WhatsApp
+          exports are only processed when you upload them. Generated drafts stay yours. You can export or delete at any time.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button variant="outline" asChild>

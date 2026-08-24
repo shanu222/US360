@@ -1,5 +1,6 @@
 import { guessPartnerName, type ParsedMessage } from "@/chat/parse";
 import { extractChatCalendar, reelQueriesFromChat } from "@/chat/dates";
+import { extractChatTimeline } from "@/chat/timeline";
 
 export interface ExtractedFact {
   title: string;
@@ -48,6 +49,7 @@ export interface ChatAnalysis {
   notable: { at: string | null; sender: string; text: string }[];
   calendarEvents: { title: string; at: string; type: string; hint: string; quote: string }[];
   reelQueries: string[];
+  timeline: { at: string | null; event: string; situation: string; outcome?: string }[];
   summary: string;
 }
 
@@ -398,6 +400,7 @@ export function analyzeWhatsAppChat(
       quote: e.quote,
     })),
     reelQueries: reelQueriesFromChat({ likes, foods, activities, topics: [...topicHits.entries()].map(([topic, count]) => ({ topic, count })), places }),
+    timeline: extractChatTimeline(messages),
     summary,
   };
 }

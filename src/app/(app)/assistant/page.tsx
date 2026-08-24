@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { AssistantStudio } from "@/features/assistant/assistant-studio";
+import { CommandBar } from "@/features/assistant/command-bar";
 
 export default function AssistantPage() {
   return (
     <div className="space-y-8">
+      <CommandBar />
       <AssistantStudio
         mode="situation"
         heading="What should I do?"

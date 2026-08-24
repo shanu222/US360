@@ -8,6 +8,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { Badge } from "@/components/ui/badge";
 import { getLatestChatImport } from "@/chat/queries";
 import { LoveCard } from "@/components/love-card";
+import { CommandBar } from "@/features/assistant/command-bar";
 
 const QUICK = [
   { href: "/assistant", label: "What Should I Do?", emoji: "🧠" },
@@ -92,6 +93,8 @@ export default async function HomePage() {
           {relationship ? `Caring for ${relationship.partnerName}.` : "Set up a relationship profile to personalize US360."}
         </p>
       </div>
+
+      <CommandBar />
 
       <Card className="bg-[linear-gradient(135deg,#fffdfb,#f4ece4)]">
         <CardHeader>

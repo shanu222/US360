@@ -48,6 +48,7 @@ model User {
   pushSubscriptions   PushSubscription[]
   onboarding          OnboardingState?
   chatImports         ChatImport[]
+  commandRuns         CommandRun[]
 
   @@index([email])
 }
@@ -120,6 +121,7 @@ model Relationship {
   reels               Reel[]
   dailyRecommendations DailyRecommendation[]
   chatImports         ChatImport[]
+  commandRuns         CommandRun[]
 
   @@index([userId])
 }
@@ -749,6 +751,7 @@ model UserSettings {
   aiShareStyle          Boolean        @default(true)
   dailyAiLimit          Int            @default(40)
   cardRepeatDays        Int            @default(14)
+  quietUntil            DateTime?
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
@@ -839,4 +842,47 @@ model ChatMessage {
   @@index([importId])
   @@index([sentAt])
   @@index([kind])
+}
+
+// ---------------------------------------------------------------------------
+// Rule-based command engine (no LLM)
+// ---------------------------------------------------------------------------
+
+model CommandRun {
+  id             String   @id @default(cuid())
+  userId         String
+  relationshipId String?
+  command        String   @db.Text
+  parsed         Json
+  result         Json
+  emotion        String?
+  situation      String?
+  recommendation String?
+  createdAt      DateTime @default(now())
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relationship Relationship?    @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+  feedback     CommandFeedback?
+
+  @@index([userId])
+  @@index([relationshipId])
+  @@index([emotion])
+  @@index([situation])
+  @@index([createdAt])
+}
+
+model CommandFeedback {
+  id           String   @id @default(cuid())
+  commandRunId String   @unique
+  userId       String
+  helpful      Boolean?
+  sent         Boolean?
+  outcome      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  run CommandRun @relation(fields: [commandRunId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([outcome])
 }

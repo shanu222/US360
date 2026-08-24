@@ -1,0 +1,27 @@
+export const PROFILE_FIELDS = [
+  { key: "personality", label: "Personality / preferences", group: "about" },
+  { key: "communication_style", label: "Communication style", group: "about" },
+  { key: "makes_happy", label: "Things that make her happy", group: "about" },
+  { key: "upsets", label: "Things that upset her", group: "about" },
+  { key: "calms", label: "Things that calm her", group: "about" },
+  { key: "flowers", label: "Favorite flowers", group: "favorites" },
+  { key: "colors", label: "Favorite colors", group: "favorites" },
+  { key: "foods", label: "Favorite foods", group: "favorites" },
+  { key: "songs", label: "Favorite songs", group: "favorites" },
+  { key: "movies", label: "Favorite movies", group: "favorites" },
+  { key: "activities", label: "Favorite activities", group: "favorites" },
+  { key: "places", label: "Favorite places", group: "favorites" },
+  { key: "gifts", label: "Favorite gifts", group: "favorites" },
+  { key: "apology_style", label: "How she prefers apologies", group: "conflict" },
+  { key: "conflict_style", label: "Communication during conflict", group: "conflict" },
+  { key: "wants_space", label: "Likes space after an argument (yes/no)", group: "conflict" },
+  { key: "message_length", label: "Preferred message length (short/medium/long)", group: "conflict" },
+  { key: "romantic_style", label: "Preferred romantic style", group: "style" },
+  { key: "humor", label: "Preferred humor", group: "style" },
+  { key: "memories_note", label: "Important memories", group: "history" },
+  { key: "promises_note", label: "Important promises", group: "history" },
+  { key: "current_goals", label: "Current goals", group: "now" },
+  { key: "current_concerns", label: "Current concerns", group: "now" },
+] as const;
+
+export type ProfileKey = (typeof PROFILE_FIELDS)[number]["key"];

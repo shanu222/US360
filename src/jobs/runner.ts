@@ -76,6 +76,7 @@ export async function prepareDailyContent(now = new Date()) {
   for (const user of users) {
     const settings = user.settings;
     if (!settings || settings.automationMode === "MANUAL") continue;
+    if (settings.quietUntil && settings.quietUntil > now) continue;
     const tz = user.timezone || "UTC";
     const dateKey = localDateKey(tz, now);
     const hour = localHour(tz, now);
@@ -191,12 +192,25 @@ export async function sendEventReminders(now = new Date()) {
   const events = await db.calendarEvent.findMany({ include: { user: { include: { settings: true } }, reminders: true } });
   for (const event of events) {
     if (!event.user.settings?.notifyEvents) continue;
+    if (event.user.settings.quietUntil && event.user.settings.quietUntil > now) continue;
     const tz = event.timezone || event.user.timezone || "UTC";
     const eventDay = localDateKey(tz, event.startAt);
     const today = localDateKey(tz, now);
     const diff = Math.round(
       (new Date(eventDay).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24),
     );
+    if (diff === -1 && (event.type === "EXAM" || /exam/i.test(event.title))) {
+      const key = `event-followup:${event.id}:${today}`;
+      await markJob("event-followup", key, async () => {
+        await notify(
+          event.userId,
+          "EVENT_REMINDER",
+          `Ask how ${event.title} went`,
+          "The day after an important event is a good time for a short, pressure-free check-in.",
+        );
+        return { ok: true };
+      });
+    }
     if (!event.reminderDays.includes(diff)) continue;
 
     const key = `event:${event.id}:${diff}:${today}`;

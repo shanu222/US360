@@ -16,6 +16,7 @@ export async function GET() {
         reels: true,
         situations: true,
         chatImports: { select: { id: true, fileName: true, partnerName: true, messageCount: true, firstAt: true, lastAt: true, stats: true, analysis: true, createdAt: true } },
+        commandRuns: { select: { id: true, command: true, emotion: true, situation: true, recommendation: true, createdAt: true, feedback: true } },
         writingStyle: true,
       },
     });

@@ -91,6 +91,7 @@ export async function persistChatAnalysis(opts: {
         dates: analysis.dates,
         calendarEvents: analysis.calendarEvents,
         reelQueries: analysis.reelQueries,
+        timeline: analysis.timeline,
         promises: analysis.promises,
         topics: analysis.topics,
         communicationStyle: analysis.communicationStyle,
