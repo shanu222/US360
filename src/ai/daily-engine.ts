@@ -1,5 +1,6 @@
 import type { DailyAction } from "@/types";
 import type { AIContext } from "@/ai/context-types";
+import { genderedCopy } from "@/lib/voice";
 
 export interface DailyDecision {
   action: DailyAction;
@@ -32,7 +33,10 @@ export function decideDailyLove(ctx: AIContext, slot: "morning" | "afternoon" | 
       action: "WAIT",
       slot,
       title: "Give the moment some space",
-      body: "Based on what you recorded, a grand romantic gesture may feel out of step right now. A calm, sincere check-in is enough — or nothing, if she asked for space.",
+      body: genderedCopy(
+        "Based on what you recorded, a grand romantic gesture may feel out of step right now. A calm, sincere check-in is enough — or nothing, if she asked for space.",
+        ctx.partnerGender,
+      ),
     };
   }
 

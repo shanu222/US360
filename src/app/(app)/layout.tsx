@@ -13,5 +13,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!onboarding || !onboarding.completed) redirect("/onboarding");
   if ((onboarding.chatImportStatus ?? "PENDING") === "PENDING") redirect("/import-chat");
 
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { gender: true, relationships: { select: { partnerGender: true }, orderBy: { createdAt: "asc" }, take: 1 } },
+  });
+  if (!user?.gender) redirect("/onboarding");
+  if (user.relationships[0] && !user.relationships[0].partnerGender) redirect("/onboarding");
+
   return <AppShell user={session.user}>{children}</AppShell>;
 }

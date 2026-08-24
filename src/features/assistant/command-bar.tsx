@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { LoveCard } from "@/components/love-card";
 import { copyCardImageToClipboard } from "@/lib/card-download";
 import { composeWhatsAppText, whatsappClickUrl } from "@/lib/whatsapp-open";
+import { commandExamples, voiceFor, type PartnerVoice } from "@/lib/voice";
 
 type Action = {
   id: string;
@@ -103,24 +104,6 @@ type Result = {
   } | null;
 };
 
-const EXAMPLES = [
-  "She is angry.",
-  "She is angry because I forgot to call her.",
-  "She is sad today.",
-  "She has an exam tomorrow.",
-  "She is stressed.",
-  "What should I do?",
-  "Find a Reel for this situation.",
-  "Find something nice to send her.",
-  "She did really well in her exam.",
-  "I want to make her smile.",
-  "What should we eat tonight?",
-  "Suggest a restaurant.",
-  "Plan a date for us.",
-  "What should we visit in Islamabad?",
-  "What should we do today?",
-];
-
 const CHANNELS = ["instagram", "facebook", "whatsapp", "email"] as const;
 
 export function CommandBar({ compact }: { compact?: boolean }) {
@@ -130,11 +113,17 @@ export function CommandBar({ compact }: { compact?: boolean }) {
   const [picked, setPicked] = useState<string[]>([]);
   const [channels, setChannels] = useState<string[]>(["email", "whatsapp"]);
   const [accounts, setAccounts] = useState<Record<string, { connected: boolean; canAutoSend: boolean; fallback: string; handle?: string | null }>>({});
+  const [voice, setVoice] = useState<PartnerVoice>(voiceFor("female"));
+  const examples = commandExamples(voice.gender);
 
   useEffect(() => {
     fetch("/api/integrations/status")
       .then((r) => r.json())
       .then((j) => setAccounts(j.data ?? {}))
+      .catch(() => {});
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then((j) => setVoice(voiceFor(j.data?.partnerGender)))
       .catch(() => {});
   }, []);
 
@@ -257,7 +246,7 @@ export function CommandBar({ compact }: { compact?: boolean }) {
         <p className="text-xs uppercase tracking-[0.28em] text-rose">Tell US360</p>
         <CardTitle className="mt-2">{compact ? "What is happening?" : "Describe the moment. The rest is prepared for you."}</CardTitle>
         <CardDescription className="mt-2">
-          Uses the WhatsApp export, her profile, calendar, and what previously helped. A Reel is only suggested when it
+          Uses the WhatsApp export, {voice.their} profile, calendar, and what previously helped. A Reel is only suggested when it
           actually fits — never because a library needs filling.
         </CardDescription>
         <form
@@ -270,7 +259,7 @@ export function CommandBar({ compact }: { compact?: boolean }) {
           <Textarea
             value={command}
             onChange={(e) => setCommand(e.target.value)}
-            placeholder="She is angry."
+            placeholder={examples[0]}
             className="min-h-[96px]"
           />
           <div className="flex flex-wrap gap-2">
@@ -284,7 +273,7 @@ export function CommandBar({ compact }: { compact?: boolean }) {
         </form>
         {!compact ? (
           <div className="mt-4 flex flex-wrap gap-2">
-            {EXAMPLES.map((ex) => (
+            {examples.map((ex) => (
               <button
                 key={ex}
                 type="button"
@@ -352,7 +341,7 @@ export function CommandBar({ compact }: { compact?: boolean }) {
                   <p className="mt-2">{result.reminderPlan.userMessage}</p>
                 </div>
                 <div className="rounded-2xl bg-paper p-3">
-                  <p className="font-medium">Her</p>
+                  <p className="font-medium">{voice.Them}</p>
                   <p className="text-xs text-muted">{new Date(result.reminderPlan.herReminderAt).toLocaleString()}</p>
                   <p className="mt-2">{result.reminderPlan.herMessage}</p>
                 </div>
@@ -593,7 +582,7 @@ export function CommandBar({ compact }: { compact?: boolean }) {
               Not helpful
             </Button>
             <Button variant="outline" size="sm" onClick={() => void feedback("POSITIVE_RESPONSE")}>
-              She responded well
+              {voice.They} responded well
             </Button>
           </div>
         </div>

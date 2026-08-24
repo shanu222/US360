@@ -9,16 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { getLatestChatImport } from "@/chat/queries";
 import { DownloadableCard } from "@/components/downloadable-card";
 import { CommandBar } from "@/features/assistant/command-bar";
-
-const QUICK = [
-  { href: "/assistant", label: "What Should I Do?", emoji: "🧠" },
-  { href: "/assistant/message-studio", label: "Write a Message", emoji: "💌" },
-  { href: "/reels", label: "Send a Reel", emoji: "🎬" },
-  { href: "/cards", label: "Create a Card", emoji: "🎨" },
-  { href: "/ideas", label: "Make Her Smile", emoji: "🎁" },
-  { href: "/explore", label: "Eat / go out", emoji: "🍽️" },
-  { href: "/calendar", label: "View Calendar", emoji: "📅" },
-];
+import { voiceFor } from "@/lib/voice";
 
 export default async function HomePage() {
   const session = await auth();
@@ -31,6 +22,16 @@ export default async function HomePage() {
   if (!user) redirect("/login");
 
   const relationship = user.relationships[0];
+  const voice = voiceFor(relationship?.partnerGender);
+  const QUICK = [
+    { href: "/assistant", label: "What Should I Do?", emoji: "🧠" },
+    { href: "/assistant/message-studio", label: "Write a Message", emoji: "💌" },
+    { href: "/reels", label: "Send a Reel", emoji: "🎬" },
+    { href: "/cards", label: "Create a Card", emoji: "🎨" },
+    { href: "/ideas", label: `Make ${voice.Them} Smile`, emoji: "🎁" },
+    { href: "/explore", label: "Eat / go out", emoji: "🍽️" },
+    { href: "/calendar", label: "View Calendar", emoji: "📅" },
+  ];
   const hour = localHour(user.timezone || "UTC");
   const today = new Date();
   today.setHours(0, 0, 0, 0);

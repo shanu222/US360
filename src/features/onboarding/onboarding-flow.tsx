@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { COMMUNICATION_STYLES, FAVORITE_CATEGORIES } from "@/types";
+import { GenderSelect } from "@/components/gender-select";
+import { oppositeGender, voiceFor, type Gender } from "@/lib/voice";
 
 const STEPS = [
   "Welcome",
@@ -18,12 +20,30 @@ const STEPS = [
   "Privacy",
 ];
 
-export function OnboardingFlow({ defaultTimezone }: { defaultTimezone: string }) {
+export function OnboardingFlow({
+  defaultTimezone,
+  existingUserGender,
+  existingPartnerGender,
+  existingPartnerName,
+  genderOnly,
+  nextPath,
+}: {
+  defaultTimezone: string;
+  existingUserGender?: Gender | null;
+  existingPartnerGender?: Gender | null;
+  existingPartnerName?: string;
+  genderOnly?: boolean;
+  nextPath?: string;
+}) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [userGender, setUserGender] = useState<Gender | "">(existingUserGender ?? "");
+  const [partnerGender, setPartnerGender] = useState<Gender | "">(
+    existingPartnerGender ?? (existingUserGender ? oppositeGender(existingUserGender) : ""),
+  );
   const [data, setData] = useState({
-    partnerName: "",
+    partnerName: existingPartnerName ?? "",
     partnerNickname: "",
     startDate: "",
     communicationStyle: "Simple",
@@ -43,6 +63,8 @@ export function OnboardingFlow({ defaultTimezone }: { defaultTimezone: string })
     city: "",
   });
 
+  const voice = useMemo(() => voiceFor(partnerGender || "female"), [partnerGender]);
+
   function toggleStyle(style: string) {
     setData((d) => ({
       ...d,
@@ -50,12 +72,50 @@ export function OnboardingFlow({ defaultTimezone }: { defaultTimezone: string })
     }));
   }
 
+  function setUserAndDefaultPartner(next: Gender) {
+    setUserGender(next);
+    if (!existingPartnerGender && (!partnerGender || partnerGender === oppositeGender(next) || partnerGender === (existingUserGender ? oppositeGender(existingUserGender) : ""))) {
+      setPartnerGender(oppositeGender(next));
+    } else if (!partnerGender) {
+      setPartnerGender(oppositeGender(next));
+    }
+  }
+
+  async function saveGenders() {
+    if (!userGender || !partnerGender) {
+      toast.error("Please choose male or female for you and your partner.");
+      return;
+    }
+    setSaving(true);
+    const res = await fetch("/api/gender", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        userGender,
+        partnerGender,
+        partnerName: data.partnerName || undefined,
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      toast.error("Could not save. Please try again.");
+      return;
+    }
+    router.push(nextPath || "/home");
+    router.refresh();
+  }
+
   async function finish() {
+    if (!userGender || !partnerGender) {
+      toast.error("Please choose male or female for you and your partner.");
+      setStep(1);
+      return;
+    }
     setSaving(true);
     const res = await fetch("/api/onboarding", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, userGender, partnerGender }),
     });
     setSaving(false);
     if (!res.ok) {
@@ -64,6 +124,44 @@ export function OnboardingFlow({ defaultTimezone }: { defaultTimezone: string })
     }
     router.push("/import-chat");
     router.refresh();
+  }
+
+  function canContinue() {
+    if (step === 1 && !userGender) return false;
+    if (step === 2 && (!data.partnerName || !partnerGender)) return false;
+    return true;
+  }
+
+  if (genderOnly) {
+    return (
+      <div className="bg-mesh min-h-screen px-4 py-10">
+        <div className="mx-auto max-w-2xl">
+          <p className="text-center font-display text-4xl text-navy">US360</p>
+          <div className="card-premium mt-8 space-y-6 p-8">
+            <h1 className="font-display text-4xl text-navy">Tell US360 who you are</h1>
+            <p className="text-sm leading-6 text-muted">
+              Pronouns, reminders, and suggestions follow these answers. You can change them later on Profile.
+            </p>
+            <GenderSelect label="I am" value={userGender} onChange={setUserAndDefaultPartner} />
+            <GenderSelect
+              label="My partner is"
+              value={partnerGender}
+              onChange={setPartnerGender}
+              hint="Defaults to the other option. Change it if that is not right."
+            />
+            {!existingPartnerName ? (
+              <div>
+                <Label>{voice.Their} name or nickname</Label>
+                <Input value={data.partnerName} onChange={(e) => setData({ ...data, partnerName: e.target.value })} />
+              </div>
+            ) : null}
+            <Button className="w-full" onClick={saveGenders} disabled={saving || !userGender || !partnerGender}>
+              {saving ? "Saving…" : "Continue"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -79,20 +177,34 @@ export function OnboardingFlow({ defaultTimezone }: { defaultTimezone: string })
 
         <div className="card-premium mt-8 p-8">
           {step === 1 && (
-            <div className="text-center">
+            <div className="space-y-6 text-center">
               <h1 className="font-display text-4xl text-navy">Welcome to US360</h1>
-              <p className="mt-4 text-lg text-muted">Remember better. Communicate better. Care better.</p>
-              <p className="mt-6 text-sm leading-6 text-muted">
+              <p className="text-lg text-muted">Remember better. Communicate better. Care better.</p>
+              <p className="text-sm leading-6 text-muted">
                 This is a private space to become more attentive — not a bot that speaks for you.
               </p>
+              <div className="text-left">
+                <GenderSelect
+                  label="I am"
+                  value={userGender}
+                  onChange={setUserAndDefaultPartner}
+                  hint="Required. US360 uses this so the whole app can speak in the right language."
+                />
+              </div>
             </div>
           )}
 
           {step === 2 && (
             <div className="space-y-4">
               <h2 className="font-display text-3xl">Relationship profile</h2>
+              <GenderSelect
+                label="My partner is"
+                value={partnerGender}
+                onChange={setPartnerGender}
+                hint="Required. Cards, commands, and reminders will use he/him or she/her from this."
+              />
               <div>
-                <Label>Her name or nickname</Label>
+                <Label>{voice.Their} name or nickname</Label>
                 <Input value={data.partnerName} onChange={(e) => setData({ ...data, partnerName: e.target.value })} required />
               </div>
               <div>
@@ -130,7 +242,7 @@ export function OnboardingFlow({ defaultTimezone }: { defaultTimezone: string })
 
           {step === 3 && (
             <div className="space-y-4">
-              <h2 className="font-display text-3xl">Her preferences</h2>
+              <h2 className="font-display text-3xl">{voice.Their} preferences</h2>
               <p className="text-sm text-muted">Add what you already know. You can refine this later.</p>
               {FAVORITE_CATEGORIES.map((cat) => (
                 <div key={cat}>
@@ -143,7 +255,7 @@ export function OnboardingFlow({ defaultTimezone }: { defaultTimezone: string })
                 </div>
               ))}
               <div>
-                <Label>Things she dislikes</Label>
+                <Label>Things {voice.they} dislikes</Label>
                 <Textarea value={data.dislikes} onChange={(e) => setData({ ...data, dislikes: e.target.value })} />
               </div>
             </div>
@@ -236,9 +348,11 @@ export function OnboardingFlow({ defaultTimezone }: { defaultTimezone: string })
               Back
             </Button>
             {step < 8 ? (
-              <Button onClick={() => setStep((s) => s + 1)}>Continue</Button>
+              <Button onClick={() => setStep((s) => s + 1)} disabled={!canContinue()}>
+                Continue
+              </Button>
             ) : (
-              <Button onClick={finish} disabled={saving || !data.partnerName}>
+              <Button onClick={finish} disabled={saving || !data.partnerName || !userGender || !partnerGender}>
                 {saving ? "Saving…" : "Enter US360"}
               </Button>
             )}

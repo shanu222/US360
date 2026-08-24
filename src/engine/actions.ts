@@ -1,4 +1,5 @@
 import type { CommandDecision, EngineProfile, ParsedCommand, PreparedAction, ReminderPlan } from "@/engine/types";
+import { voiceFor } from "@/lib/voice";
 
 function atHour(base: Date, hour: number) {
   const d = new Date(base);
@@ -13,16 +14,18 @@ export function buildReminderPlan(parsed: ParsedCommand, profile: EngineProfile)
   const herAt = atHour(start, 7);
   const title = parsed.eventHint.title;
   const exam = parsed.eventHint.type === "EXAM" || /exam|presentation/i.test(title);
+  const voice = voiceFor(profile.partnerGender);
+  const name = profile.partnerName.split(" ")[0] || voice.partnerNoun;
   return {
     eventTitle: title,
     eventType: parsed.eventHint.type,
     startAt: start.toISOString(),
-    forName: profile.partnerName.split(" ")[0] || "her",
+    forName: name,
     userReminderAt: userAt.toISOString(),
     herReminderAt: herAt.toISOString(),
     userMessage: exam
-      ? `${profile.partnerName.split(" ")[0] || "Her"} ${title.toLowerCase()} is coming up. Remember to wish her good luck.`
-      : `Remember ${title} for ${profile.partnerName.split(" ")[0] || "her"}.`,
+      ? `${name}'s ${title.toLowerCase()} is coming up. Remember to wish ${voice.them} good luck.`
+      : `Remember ${title} for ${name}.`,
     herMessage: exam
       ? `Good luck with your exam today. You've got this ❤️`
       : `Thinking of you for ${title.toLowerCase()} today ❤️`,
@@ -36,8 +39,10 @@ export function buildActions(opts: {
   hasCard: boolean;
   hasReel: boolean;
   hasLifestyle?: boolean;
+  partnerGender?: string | null;
 }): PreparedAction[] {
   const { parsed, decision } = opts;
+  const voice = voiceFor(opts.partnerGender);
   const actions: PreparedAction[] = [];
   const space = decision.recommendedAction === "GIVE_SPACE" || decision.recommendedAction === "NO_ACTION" || decision.recommendedAction === "WAIT";
 
@@ -45,7 +50,7 @@ export function buildActions(opts: {
     actions.push({
       id: "space",
       kind: "space",
-      title: "Give her some space",
+      title: `Give ${voice.them} some space`,
       detail: decision.timing,
       required: true,
       selected: true,
@@ -72,7 +77,7 @@ export function buildActions(opts: {
     actions.push({
       id: "reminder_her",
       kind: "reminder_her",
-      title: "Prepare a reminder for her",
+      title: `Prepare a reminder for ${voice.them}`,
       detail: "Morning of, through a channel you approve — never sent until you confirm.",
       required: false,
       selected: !space && (parsed.primarySituation === "EXAM" || parsed.eventHint?.type === "EXAM"),

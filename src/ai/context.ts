@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { getPrimaryRelationship } from "@/server/auth";
 import { type AIContext } from "@/ai/context-types";
+import { parseGender } from "@/lib/voice";
 
 export type { AIContext };
 export { contextToPrompt } from "@/ai/context-types";
@@ -100,7 +101,9 @@ export async function buildAIContext(userId: string): Promise<AIContext> {
     now: now.toISOString(),
     timezone,
     userName: user.name,
+    userGender: parseGender(user.gender),
     partnerName: relationship?.partnerName ?? relationship?.partnerNickname,
+    partnerGender: parseGender(relationship?.partnerGender),
     relationshipStart: relationship?.startDate?.toISOString() ?? null,
     communicationStyle: relationship?.communicationStyle,
     language: user.language,

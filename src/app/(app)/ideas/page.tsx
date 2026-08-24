@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { usePartnerVoice } from "@/lib/use-partner-voice";
 
 type Idea = { title: string; why: string; budget: string; preparation: string; message?: string; effort: string };
 
 export default function IdeasPage() {
+  const voice = usePartnerVoice();
   const [occasion, setOccasion] = useState("Just because");
   const [budget, setBudget] = useState("prefer free or low");
   const [timeAvailable, setTimeAvailable] = useState("this evening");
@@ -32,10 +34,10 @@ export default function IdeasPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <h1 className="font-display text-4xl text-navy">Ideas</h1>
-      <p className="mt-2 text-muted">Make her smile without making expensive spending the default.</p>
+      <p className="mt-2 text-muted">Make {voice.them} smile without making expensive spending the default.</p>
       <div className="mt-6 flex flex-wrap gap-2">
         <Button onClick={() => run("/api/ai/smile", { budget, time: timeAvailable })} disabled={loading}>
-          Make her smile
+          Make {voice.them} smile
         </Button>
         <Button variant="outline" onClick={() => run("/api/ai/gifts", { occasion, budget, timeAvailable })} disabled={loading}>
           Gift ideas

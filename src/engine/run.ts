@@ -9,6 +9,7 @@ import { buildActions, buildReminderPlan } from "@/engine/actions";
 import { buildLifestyle } from "@/lifestyle/build";
 import type { CommandResultView, ParsedCommand } from "@/engine/types";
 import type { CalendarEventType, Prisma } from "@prisma/client";
+import { voiceDeep } from "@/lib/voice";
 
 function asJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
@@ -96,6 +97,7 @@ export async function runCommand(opts: {
     hasCard: Boolean(card),
     hasReel: Boolean(reel),
     hasLifestyle: Boolean(lifestyle && (lifestyle.restaurants.length || lifestyle.places.length || lifestyle.dateNight || lifestyle.dayPlan)),
+    partnerGender: ctx.profile.partnerGender,
   });
 
   const view: CommandResultView = {
@@ -151,7 +153,7 @@ export async function runCommand(opts: {
     }
   }
 
-  return { id: runId, ...view };
+  return { id: runId, ...voiceDeep(view, ctx.profile.partnerGender) };
 }
 
 export async function savePendingEvent(userId: string, event: { title: string; type: string; startAt: string; notes?: string }) {

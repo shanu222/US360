@@ -24,6 +24,8 @@ const schema = z.object({
   eveningTime: z.string(),
   nightTime: z.string(),
   city: z.string().optional(),
+  userGender: z.enum(["male", "female"]),
+  partnerGender: z.enum(["male", "female"]),
 });
 
 export async function POST(req: Request) {
@@ -34,13 +36,14 @@ export async function POST(req: Request) {
     await db.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: user.id },
-        data: { timezone: body.timezone, language: body.language ?? "en", city: body.city?.trim() || undefined },
+        data: { timezone: body.timezone, language: body.language ?? "en", city: body.city?.trim() || undefined, gender: body.userGender },
       });
 
       const relationship = await tx.relationship.create({
         data: {
           userId: user.id,
           partnerName: body.partnerName,
+          partnerGender: body.partnerGender,
           partnerNickname: body.partnerNickname,
           startDate: body.startDate ? new Date(body.startDate) : null,
           communicationStyle: body.styles.join(", ") || body.communicationStyle,
@@ -65,7 +68,7 @@ export async function POST(req: Request) {
             data: {
               relationshipId: relationship.id,
               title: `${category}: ${value}`,
-              content: `She likes ${value}.`,
+              content: `${body.partnerName} likes ${value}.`,
               category: category === "appreciates" ? "FAVORITES" : "FAVORITES",
             },
           });

@@ -9,7 +9,7 @@ export default function AssistantPage() {
       <AssistantStudio
         mode="situation"
         heading="What should I do?"
-        placeholder="We had an argument because I forgot to call her."
+        placeholder="We had an argument because I forgot to call."
       />
       <div className="mx-auto flex max-w-6xl flex-wrap gap-3">
         <Link className="rounded-full bg-paper px-4 py-2 text-sm" href="/assistant/apologize">

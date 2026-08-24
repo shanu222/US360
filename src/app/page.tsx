@@ -112,7 +112,7 @@ export default async function LandingPage() {
           <LoveCard
             message="I keep you in the small details — even chai after class."
             themeId="aurora"
-            partnerName="her"
+            partnerName="Maya"
             kicker=""
             className="min-h-[380px]"
           />

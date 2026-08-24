@@ -181,7 +181,7 @@ export function localJsonForPrompt(messages: ChatMessage[]) {
   if (blob.includes("review the user's draft") || blob.includes("draft message")) {
     return localToneReview();
   }
-  if (blob.includes("gift") || blob.includes("budget") || blob.includes("make her smile")) {
+  if (blob.includes("gift") || blob.includes("budget") || blob.includes("make her smile") || blob.includes("make him smile")) {
     return localGiftIdeas();
   }
   return localSituation(last);

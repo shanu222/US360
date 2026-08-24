@@ -38,6 +38,7 @@ export async function POST(req: Request) {
       userName: user.name,
       fileName: body.fileName,
       partnerHint: relationship?.partnerName,
+      partnerGender: relationship?.partnerGender,
     });
     const saved = await persistChatAnalysis({
       userId: user.id,

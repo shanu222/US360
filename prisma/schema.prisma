@@ -23,6 +23,7 @@ model User {
   timezone      String    @default("UTC")
   language      String    @default("en")
   city          String?
+  gender        String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -104,6 +105,7 @@ model Relationship {
   id                  String    @id @default(cuid())
   userId              String
   partnerName         String
+  partnerGender       String?
   partnerNickname     String?
   startDate           DateTime?
   communicationStyle  String?

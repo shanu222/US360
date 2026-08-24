@@ -7,6 +7,7 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/states";
 import { Badge } from "@/components/ui/badge";
+import { usePartnerVoice } from "@/lib/use-partner-voice";
 
 const CATS = ["ALL", "FAVORITES", "LIKES", "DISLIKES", "IMPORTANT", "MEMORIES", "PROMISES", "GOALS", "PREFERENCES", "GENERAL"];
 
@@ -20,6 +21,7 @@ type Memory = {
 };
 
 export default function MemoryPage() {
+  const voice = usePartnerVoice();
   const [items, setItems] = useState<Memory[]>([]);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("ALL");
@@ -70,7 +72,7 @@ export default function MemoryPage() {
       <p className="mt-2 text-muted">A private place for what matters. Nothing is stored from conversation unless you say yes.</p>
       <form onSubmit={add} className="card-premium mt-6 space-y-3 p-5">
         <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        <Textarea placeholder="She loves roses. She has a presentation on Friday." value={content} onChange={(e) => setContent(e.target.value)} required />
+        <Textarea placeholder={`${voice.They} loves roses. ${voice.They} has a presentation on Friday.`} value={content} onChange={(e) => setContent(e.target.value)} required />
         <Button type="submit">Add memory</Button>
       </form>
       <div className="mt-6 flex flex-wrap gap-2">

@@ -1,5 +1,6 @@
 import type { CommandDecision, EngineContext, ParsedCommand, PreparePlan } from "@/engine/types";
 import { DECISION_RULES } from "@/engine/knowledge/rules";
+import { voiceDeep } from "@/lib/voice";
 
 function ruleMatches(rule: (typeof DECISION_RULES)[number], parsed: ParsedCommand, ctx: EngineContext) {
   const w = rule.when;
@@ -72,24 +73,27 @@ function buildPlan(parsed: ParsedCommand, ctx: EngineContext): PreparePlan | nul
 
 export function decideCommand(parsed: ParsedCommand, ctx: EngineContext): CommandDecision {
   if (ctx.quietUntil && ctx.quietUntil > ctx.now && !parsed.intents.includes("MODIFY_TONE")) {
-    return {
-      situationDetected: "A quiet window is already in place from a previous command.",
-      approach: "Nothing needs to be sent right now.",
-      recommendedAction: "NO_ACTION",
-      relationshipState: "QUIET",
-      priority: "CRITICAL",
-      avoid: ["New reminders", "A stacked Reel or card"],
-      timing: `Wait until ${ctx.quietUntil.toLocaleString()}.`,
-      messageKey: "space",
-      cardCategory: null,
-      reelCategory: null,
-      reelReason: null,
-      nothingNeeded: true,
-      historyNotes: historyNote(ctx, parsed),
-      pendingEvent: null,
-      plan: null,
-      quietUntil: ctx.quietUntil.toISOString(),
-    };
+    return voiceDeep(
+      {
+        situationDetected: "A quiet window is already in place from a previous command.",
+        approach: "Nothing needs to be sent right now.",
+        recommendedAction: "NO_ACTION",
+        relationshipState: "QUIET",
+        priority: "CRITICAL",
+        avoid: ["New reminders", "A stacked Reel or card"],
+        timing: `Wait until ${ctx.quietUntil.toLocaleString()}.`,
+        messageKey: "space",
+        cardCategory: null,
+        reelCategory: null,
+        reelReason: null,
+        nothingNeeded: true,
+        historyNotes: historyNote(ctx, parsed),
+        pendingEvent: null,
+        plan: null,
+        quietUntil: ctx.quietUntil.toISOString(),
+      },
+      ctx.profile.partnerGender,
+    );
   }
 
   const match =
@@ -180,30 +184,33 @@ export function decideCommand(parsed: ParsedCommand, ctx: EngineContext): Comman
               ? `Heard: ${parsed.raw.slice(0, 160)}`
               : "A quiet, ordinary request.";
 
-  return {
-    situationDetected,
-    approach: then.approach,
-    recommendedAction: action,
-    relationshipState: then.state,
-    priority: then.priority,
-    avoid: then.avoid,
-    timing: then.timing,
-    messageKey: parsed.shorter || ctx.profile.messageLength === "short" ? then.messageKey : then.messageKey,
-    cardCategory: card ?? null,
-    reelCategory: reel ?? null,
-    reelReason: reel
-      ? then.priority === "CRITICAL"
-        ? "Optional after an apology — a gentle Reel only, never a joke. Not required."
-        : reel === "FUNNY"
-          ? "A light Reel that fits what she already likes, only because this is not a conflict."
-          : `A ${reel.toLowerCase()} Reel from her likes and the chat — only if a Reel still fits.`
-      : then.priority === "CRITICAL" || action === "GIVE_SPACE"
-        ? "No Reel. A joke or romantic Reel would be the wrong move."
-        : null,
-    nothingNeeded: action === "NO_ACTION" || action === "WAIT" || action === "GIVE_SPACE",
-    historyNotes,
-    pendingEvent: parsed.intents.includes("SAVE_EVENT") || parsed.intents.includes("PREPARE_EVERYTHING") ? pendingEvent : pendingEvent,
-    plan: buildPlan(parsed, ctx),
-    quietUntil,
-  };
+  return voiceDeep(
+    {
+      situationDetected,
+      approach: then.approach,
+      recommendedAction: action,
+      relationshipState: then.state,
+      priority: then.priority,
+      avoid: then.avoid,
+      timing: then.timing,
+      messageKey: parsed.shorter || ctx.profile.messageLength === "short" ? then.messageKey : then.messageKey,
+      cardCategory: card ?? null,
+      reelCategory: reel ?? null,
+      reelReason: reel
+        ? then.priority === "CRITICAL"
+          ? "Optional after an apology — a gentle Reel only, never a joke. Not required."
+          : reel === "FUNNY"
+            ? "A light Reel that fits what she already likes, only because this is not a conflict."
+            : `A ${reel.toLowerCase()} Reel from her likes and the chat — only if a Reel still fits.`
+        : then.priority === "CRITICAL" || action === "GIVE_SPACE"
+          ? "No Reel. A joke or romantic Reel would be the wrong move."
+          : null,
+      nothingNeeded: action === "NO_ACTION" || action === "WAIT" || action === "GIVE_SPACE",
+      historyNotes,
+      pendingEvent: parsed.intents.includes("SAVE_EVENT") || parsed.intents.includes("PREPARE_EVERYTHING") ? pendingEvent : pendingEvent,
+      plan: buildPlan(parsed, ctx),
+      quietUntil,
+    },
+    ctx.profile.partnerGender,
+  );
 }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { voiceFor } from "@/lib/voice";
 
 type Settings = {
   automationMode: string;
@@ -29,6 +30,7 @@ type Settings = {
   timezone?: string;
   accountEmail?: string | null;
   partnerEmail?: string | null;
+  partnerGender?: string | null;
   email?: {
     configured: boolean;
     ready: boolean;
@@ -72,6 +74,7 @@ export default function SettingsPage() {
     !settings.email?.hasUser && "SMTP_USER",
     !settings.email?.hasPassword && "SMTP_PASSWORD",
   ].filter(Boolean);
+  const voice = voiceFor(settings.partnerGender);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -82,7 +85,7 @@ export default function SettingsPage() {
         {settings.email?.configured ? (
           <p className="mt-2 text-sm text-muted">
             SMTP is configured. Calendar reminders and prepared notes can go automatically to emails already saved in
-            the system — your account address and her address on Profile.
+            the system — your account address and {voice.their} address on Profile.
           </p>
         ) : (
           <p className="mt-2 text-sm text-muted">
@@ -96,7 +99,7 @@ export default function SettingsPage() {
             Your account: <span className="font-medium">{settings.accountEmail || "not set"}</span>
           </li>
           <li>
-            Her email (Profile): <span className="font-medium">{settings.partnerEmail || "not set — add it on Profile"}</span>
+            {voice.Their} email (Profile): <span className="font-medium">{settings.partnerEmail || "not set — add it on Profile"}</span>
           </li>
         </ul>
         <p className="mt-2 text-xs text-muted">
@@ -126,7 +129,7 @@ export default function SettingsPage() {
             <a href="/docs/email">Mail setup steps</a>
           </Button>
           <Button asChild variant="ghost">
-            <a href="/profile">Add her email</a>
+            <a href="/profile">Add {voice.their} email</a>
           </Button>
         </div>
       </Card>

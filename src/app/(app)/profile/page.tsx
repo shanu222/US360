@@ -1,17 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { PROFILE_FIELDS } from "@/engine/profile-fields";
+import { profileFields } from "@/engine/profile-fields";
+import { GenderSelect } from "@/components/gender-select";
+import { voiceFor, type Gender } from "@/lib/voice";
 
 export default function ProfilePage() {
   const [partnerName, setPartnerName] = useState("");
   const [communicationStyle, setCommunicationStyle] = useState("");
+  const [userGender, setUserGender] = useState<Gender | "">("");
+  const [partnerGender, setPartnerGender] = useState<Gender | "">("");
   const [values, setValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+
+  const voice = useMemo(() => voiceFor(partnerGender || null), [partnerGender]);
+  const fields = useMemo(() => profileFields(partnerGender || null), [partnerGender]);
 
   useEffect(() => {
     fetch("/api/profile")
@@ -19,6 +26,8 @@ export default function ProfilePage() {
       .then((j) => {
         setPartnerName(j.data?.partnerName ?? "");
         setCommunicationStyle(j.data?.communicationStyle ?? "");
+        setUserGender(j.data?.userGender ?? "");
+        setPartnerGender(j.data?.partnerGender ?? "");
         setValues(j.data?.values ?? {});
         setLoading(false);
       })
@@ -26,10 +35,14 @@ export default function ProfilePage() {
   }, []);
 
   async function save() {
+    if (!userGender || !partnerGender) {
+      toast.error("Please choose male or female for you and your partner.");
+      return;
+    }
     const res = await fetch("/api/profile", {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ partnerName, communicationStyle, values }),
+      body: JSON.stringify({ partnerName, communicationStyle, values, userGender, partnerGender }),
     });
     if (!res.ok) return toast.error("Could not save profile.");
     toast.success("Profile saved. Commands will use this.");
@@ -49,8 +62,15 @@ export default function ProfilePage() {
         </p>
       </div>
       <Card className="space-y-4">
+        <GenderSelect label="I am" value={userGender} onChange={setUserGender} />
+        <GenderSelect
+          label="My partner is"
+          value={partnerGender}
+          onChange={setPartnerGender}
+          hint="The rest of US360 uses he/him or she/her from this."
+        />
         <div>
-          <Label>Her name</Label>
+          <Label>{voice.Their} name</Label>
           <Input value={partnerName} onChange={(e) => setPartnerName(e.target.value)} />
         </div>
         <div>
@@ -61,7 +81,7 @@ export default function ProfilePage() {
       {groups.map((group) => (
         <Card key={group} className="space-y-4">
           <p className="text-xs uppercase tracking-[0.2em] text-rose">{group}</p>
-          {PROFILE_FIELDS.filter((f) => f.group === group).map((field) => (
+          {fields.filter((f) => f.group === group).map((field) => (
             <div key={field.key}>
               <Label>{field.label}</Label>
               {group === "send" ? (
@@ -80,7 +100,9 @@ export default function ProfilePage() {
           ))}
         </Card>
       ))}
-      <Button onClick={save}>Save profile</Button>
+      <Button onClick={save} disabled={!userGender || !partnerGender}>
+        Save profile
+      </Button>
     </div>
   );
 }

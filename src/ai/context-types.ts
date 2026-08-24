@@ -2,7 +2,9 @@ export interface AIContext {
   now: string;
   timezone: string;
   userName?: string | null;
+  userGender?: "male" | "female" | null;
   partnerName?: string | null;
+  partnerGender?: "male" | "female" | null;
   relationshipStart?: string | null;
   communicationStyle?: string | null;
   language?: string | null;
@@ -28,8 +30,8 @@ export interface AIContext {
 export function contextToPrompt(ctx: AIContext) {
   return `Current context (minimized, user-authorized):
 Now: ${ctx.now} (${ctx.timezone}), season: ${ctx.season}
-User: ${ctx.userName ?? "the user"}
-Partner: ${ctx.partnerName ?? "their partner"}
+User: ${ctx.userName ?? "the user"}${ctx.userGender ? ` (${ctx.userGender})` : ""}
+Partner: ${ctx.partnerName ?? "their partner"}${ctx.partnerGender ? ` (${ctx.partnerGender}; use ${ctx.partnerGender === "male" ? "he/him/his" : "she/her/hers"})` : ""}
 Style: ${ctx.communicationStyle ?? "not specified"}
 Language: ${ctx.language ?? "en"}
 Favorites: ${ctx.favorites.map((f) => `${f.category}: ${f.value}`).join("; ") || "none"}

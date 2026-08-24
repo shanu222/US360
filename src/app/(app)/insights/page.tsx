@@ -7,6 +7,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { WeeklyFocusToggle, WeeklyFocusPrepare } from "@/features/insights/weekly-focus";
 import { Button } from "@/components/ui/button";
 import { getLatestChatImport } from "@/chat/queries";
+import { voiceFor } from "@/lib/voice";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -14,14 +15,16 @@ export default async function InsightsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const [data, focus, chatImport] = await Promise.all([
+  const [data, focus, chatImport, relationship] = await Promise.all([
     computeInsights(session.user.id),
     db.weeklyFocus.findFirst({
       where: { userId: session.user.id },
       orderBy: { weekStart: "desc" },
     }),
     getLatestChatImport(session.user.id),
+    db.relationship.findFirst({ where: { userId: session.user.id }, orderBy: { createdAt: "asc" } }),
   ]);
+  const voice = voiceFor(relationship?.partnerGender);
 
   const stats = (chatImport?.stats ?? {}) as {
     hourHistogram?: number[];
@@ -51,7 +54,7 @@ export default async function InsightsPage() {
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <h1 className="font-display text-4xl text-navy">Insights</h1>
-        <p className="mt-2 text-muted">Patterns from what you recorded — not a diagnosis, and never a label for her.</p>
+        <p className="mt-2 text-muted">Patterns from what you recorded — not a diagnosis, and never a label for {voice.them}.</p>
       </div>
       {chatImport ? (
         <Card>

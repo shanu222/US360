@@ -62,7 +62,7 @@ function parseEvent(text: string, now: Date): ParsedCommand["eventHint"] {
 function quietHours(text: string): number | null {
   const m = text.match(/\b(?:for|in)\s+(\d+)\s*(hour|hours|hr|hrs)\b/i);
   if (m) return Number(m[1]);
-  if (/\bdon't remind|dont remind|needs space|give her space\b/i.test(text)) return 3;
+  if (/\bdon't remind|dont remind|needs space|give (her|him) space\b/i.test(text)) return 3;
   return null;
 }
 
@@ -70,7 +70,7 @@ function apologyReason(text: string) {
   const m = text.match(/\bbecause\s+(.+)$/i);
   if (m?.[1]) return m[1].replace(/[.!?].*$/, "").trim().slice(0, 120);
   if (/forgot to call|didn't call|did not call/i.test(text)) return "the missed call";
-  if (/forgot her birthday|missed her birthday/i.test(text)) return "missing your birthday";
+  if (/forgot (her|his) birthday|missed (her|his) birthday/i.test(text)) return "missing your birthday";
   if (/i forgot/i.test(text)) return "what I forgot";
   return null;
 }
@@ -89,12 +89,12 @@ export function parseCommand(raw: string, previous?: ParsedCommand | null, now =
     /\b(reel|reels|find (a |me )?(funny |cute |calm |appropriate )?(reel|reels)|search (me )?reels|find something (nice|cute|funny) to send|something (nice|cute) to send)\b/i.test(
       lower,
     );
-  const wantsMessage = /\b(message|text|write|suggest something|what should i (say|do)|apolog|she is angry|she's angry|she is upset|she is sad|prepare something appropriate)\b/i.test(lower);
+  const wantsMessage = /\b(message|text|write|suggest something|what should i (say|do)|apolog|s?he is angry|s?he's angry|s?he is upset|s?he is sad|prepare something appropriate)\b/i.test(lower);
   const wantsHistory = /\b(previous|usually works|look at (our|the) previous|based on our|what you know)\b/i.test(lower);
-  const prepareAll = /\bprepare everything|prepare something for her birthday\b/i.test(lower);
+  const prepareAll = /\bprepare everything|prepare something for (her|his) birthday\b/i.test(lower);
   const shouldApologize = /\bshould i apologize|write a short apology|say sorry\b/i.test(lower);
-  const giveSpace = /\bneeds space|give her space|don't (send|message|remind)\b/i.test(lower);
-  const cheer = /\bcheer her up|make her (smile|laugh|feel better)|i want to make her smile|feeling sad|find something nice for her\b/i.test(lower);
+  const giveSpace = /\bneeds space|give (her|him) space|don't (send|message|remind)\b/i.test(lower);
+  const cheer = /\bcheer (her|him) up|make (her|him) (smile|laugh|feel better)|i want to make (her|him) smile|feeling sad|find something nice for (her|him)\b/i.test(lower);
 
   const intents: CommandIntent[] = [];
   if (prepareAll) intents.push("PREPARE_EVERYTHING");

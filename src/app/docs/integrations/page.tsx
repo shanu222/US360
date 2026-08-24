@@ -14,7 +14,7 @@ export default function IntegrationsDocsPage() {
       <Card>
         <CardTitle>Email (the only auto-send)</CardTitle>
         <p className="mt-3 text-sm text-muted">
-          SMTP on the server plus your account email and/or her Profile email. Full steps:{" "}
+          SMTP on the server plus your account email and/or the partner email on Profile. Full steps:{" "}
           <Link className="underline" href="/docs/email">
             /docs/email
           </Link>
@@ -24,14 +24,14 @@ export default function IntegrationsDocsPage() {
       <Card>
         <CardTitle>Instagram</CardTitle>
         <ul className="mt-3 list-disc space-y-1 pl-5 text-sm leading-6">
-          <li>Add her username on Profile so Open Instagram works</li>
+          <li>Add their username on Profile so Open Instagram works</li>
           <li>Optional official OAuth (`META_APP_ID`, `META_APP_SECRET`)</li>
           <li>Reels and DMs are never auto-sent</li>
         </ul>
       </Card>
       <Card>
         <CardTitle>Facebook</CardTitle>
-        <p className="mt-3 text-sm text-muted">Add her Facebook identifier on Profile. Sending is always Open Facebook.</p>
+        <p className="mt-3 text-sm text-muted">Add their Facebook identifier on Profile. Sending is always Open Facebook.</p>
       </Card>
       <Card>
         <CardTitle>WhatsApp</CardTitle>

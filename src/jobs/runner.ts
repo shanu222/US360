@@ -10,6 +10,7 @@ import { sendPush } from "@/lib/push";
 import { sendEmail } from "@/lib/email";
 import { localDateKey, localHour } from "@/lib/utils";
 import { deliverOutbound } from "@/integrations/deliver";
+import { voiceFor } from "@/lib/voice";
 
 function inQuietHours(settings: { quietHoursStart: string; quietHoursEnd: string }, hour: number) {
   const start = Number(settings.quietHoursStart.split(":")[0]);
@@ -221,11 +222,12 @@ export async function sendEventReminders(now = new Date()) {
       const when = diff === 0 ? "today" : diff === 1 ? "tomorrow" : `in ${diff} days`;
       const partner = event.relationship?.partnerName;
       const subject = partner ? `${partner}'s ${event.title}` : event.title;
+      const them = voiceFor(event.relationship?.partnerGender).them;
         await notify(
           event.userId,
           "EVENT_REMINDER",
           `${event.title} is ${when}`,
-          `Reminder ❤️ ${subject} is ${when}. You may want to wish her good luck or prepare a supportive message.`,
+          `Reminder ❤️ ${subject} is ${when}. You may want to wish ${them} good luck or prepare a supportive message.`,
         );
       await db.eventReminder.upsert({
         where: { eventId_daysBefore: { eventId: event.id, daysBefore: diff } },

@@ -9,6 +9,7 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CommandBar } from "@/features/assistant/command-bar";
+import { usePartnerVoice } from "@/lib/use-partner-voice";
 
 type Reel = {
   id: string;
@@ -22,6 +23,7 @@ type Pending = { title: string; at: string; type: string; hint: string; quote: s
 type Platform = { connected: boolean; serverConfigured: boolean; handle: string | null; canAutoSend: boolean; auto: boolean; fallback: string; label: string };
 
 export default function ReelsPage() {
+  const voice = usePartnerVoice();
   const [reels, setReels] = useState<Reel[]>([]);
   const [url, setUrl] = useState("");
   const [category, setCategory] = useState("CUTE");
@@ -87,7 +89,7 @@ export default function ReelsPage() {
       <div>
         <h1 className="font-display text-4xl text-navy">What should I send?</h1>
         <p className="mt-2 text-muted">
-          Tell US360 what is happening. It finds a Reel from her likes and the chat when a Reel is actually appropriate —
+          Tell US360 what is happening. It finds a Reel from {voice.their} likes and the chat when a Reel is actually appropriate —
           no saved library required. You still approve anything that leaves the app.
         </p>
       </div>
@@ -125,7 +127,7 @@ export default function ReelsPage() {
           })}
         </div>
         <p className="mt-3 text-xs text-muted">
-          Add her usernames on{" "}
+          Add {voice.their} usernames on{" "}
           <Link className="underline" href="/profile">
             Profile
           </Link>
@@ -172,7 +174,7 @@ export default function ReelsPage() {
         </button>
         {showLibrary ? (
           <form onSubmit={add} className="card-premium mt-4 space-y-3 p-5">
-            <p className="text-sm text-muted">You do not need this. Commands search Instagram from her likes. This is only if you want to keep a URL.</p>
+            <p className="text-sm text-muted">You do not need this. Commands search Instagram from {voice.their} likes. This is only if you want to keep a URL.</p>
             <div>
               <Label>Reel URL</Label>
               <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.instagram.com/reel/…" />
@@ -184,7 +186,7 @@ export default function ReelsPage() {
                 </button>
               ))}
             </div>
-            <Textarea placeholder="Why this fits her" value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <Textarea placeholder={`Why this fits ${voice.them}`} value={notes} onChange={(e) => setNotes(e.target.value)} />
             <Button type="submit">Save for later</Button>
             {reels.map((r) => (
               <p key={r.id} className="break-all text-xs text-muted">

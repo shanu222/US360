@@ -67,6 +67,15 @@ describe("command parser", () => {
     expect(parsed.wantsSpace).toBe(true);
     expect(parsed.quietHours).toBe(3);
   });
+
+  it("detects anger and missed call when the partner is described as he/him", () => {
+    const parsed = parseCommand("He is angry because I forgot to call him. Suggest a message and find an appropriate Reel.");
+    expect(parsed.primaryEmotion).toBe("ANGER");
+    expect(parsed.primarySituation).toBe("MISSED_CALL");
+    expect(parsed.userFault).toBe(true);
+    expect(parsed.wantsMessage).toBe(true);
+    expect(parsed.wantsReel).toBe(true);
+  });
 });
 
 describe("decision engine", () => {
@@ -76,6 +85,16 @@ describe("decision engine", () => {
     expect(decision.recommendedAction).toBe("APOLOGIZE");
     expect(decision.reelCategory).toBeNull();
     expect(decision.avoid.some((a) => /joke|funny/i.test(a))).toBe(true);
+  });
+
+  it("uses he/him language when the partner is male", () => {
+    const parsed = parseCommand("He is angry because I forgot to call him.");
+    const base = ctx();
+    const decision = decideCommand(parsed, ctx({ profile: { ...base.profile, partnerName: "Ali", partnerGender: "male" } }));
+    expect(decision.situationDetected).toMatch(/\bHe\b/);
+    expect(decision.situationDetected).not.toMatch(/\bShe\b/);
+    expect(decision.approach).toMatch(/\bhe\b/i);
+    expect(decision.approach).not.toMatch(/\bshe\b/i);
   });
 
   it("offers a calming reel when asked to search reels while she is angry", () => {

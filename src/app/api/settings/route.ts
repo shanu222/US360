@@ -3,6 +3,7 @@ import { requireUser } from "@/server/auth";
 import { db } from "@/lib/db";
 import { handleApiError, jsonOk } from "@/lib/api";
 import { emailSetupStatus } from "@/lib/email";
+import { parseGender } from "@/lib/voice";
 
 export async function GET() {
   try {
@@ -23,6 +24,7 @@ export async function GET() {
       timezone: user.timezone,
       accountEmail: user.email,
       partnerEmail,
+      partnerGender: parseGender(relationship?.partnerGender),
       email: emailSetupStatus(),
     });
   } catch (error) {

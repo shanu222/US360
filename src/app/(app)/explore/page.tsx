@@ -6,10 +6,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CommandBar } from "@/features/assistant/command-bar";
+import { usePartnerVoice } from "@/lib/use-partner-voice";
 
 type Pending = { kind: string; title: string; quote: string; whenHint?: string };
 
 export default function ExplorePage() {
+  const voice = usePartnerVoice();
   const [pending, setPending] = useState<Pending[]>([]);
   const [vibe, setVibe] = useState("");
 
@@ -39,7 +41,7 @@ export default function ExplorePage() {
       <div>
         <h1 className="font-display text-4xl text-navy">What should we eat / visit?</h1>
         <p className="mt-2 text-muted">
-          Uses your city (not a home address), her food likes, chat mentions, calendar, and a mix of catalog + optional
+          Uses your city (not a home address), {voice.their} food likes, chat mentions, calendar, and a mix of catalog + optional
           live search. Nothing is booked automatically.
         </p>
         <p className="mt-2 text-sm">

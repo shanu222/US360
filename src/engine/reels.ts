@@ -91,7 +91,7 @@ export function moodReelQueries(opts: {
   const byMood: Partial<Record<Emotion, string[]>> = {
     ANGER: ["calm couple reel", "soft apology reel", "gentle comfort reel"],
     HURT: ["comforting couple reel", "gentle sorry reel"],
-    SADNESS: ["cute comforting reel", "wholesome couple reel", "make her smile reel"],
+    SADNESS: ["cute comforting reel", "wholesome couple reel", "make her smile reel", "make him smile reel"],
     STRESS: ["relaxing reel", "calm aesthetic reel"],
     ANXIETY: ["gentle comfort reel", "soft cute reel"],
     HAPPINESS: ["feel good couple reel", "funny cute reel"],

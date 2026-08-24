@@ -2,17 +2,17 @@ import type { SituationKind, WeightedPhrase } from "@/engine/types";
 
 export const SITUATION_LEXICON: Record<SituationKind, WeightedPhrase[]> = {
   MISSED_CALL: [
-    { phrases: ["forgot to call", "missed her call", "didn't call", "did not call", "expected call"], weight: 6 },
-    { phrases: ["call her", "phone call"], weight: 2 },
+    { phrases: ["forgot to call", "missed her call", "missed his call", "didn't call", "did not call", "expected call"], weight: 6 },
+    { phrases: ["call her", "call him", "phone call"], weight: 2 },
   ],
   LATE_RESPONSE: [
-    { phrases: ["replied late", "didn't text back", "left her on seen", "slow to reply"], weight: 5 },
+    { phrases: ["replied late", "didn't text back", "left her on seen", "left him on seen", "slow to reply"], weight: 5 },
   ],
   FORGOT_SOMETHING: [
     { phrases: ["i forgot", "i forget", "slipped my mind", "didn't remember"], weight: 5 },
   ],
   FORGOT_BIRTHDAY: [
-    { phrases: ["forgot her birthday", "missed her birthday"], weight: 8 },
+    { phrases: ["forgot her birthday", "forgot his birthday", "missed her birthday", "missed his birthday"], weight: 8 },
   ],
   BROKEN_PROMISE: [
     { phrases: ["broke a promise", "i promised", "didn't keep my word", "i said i would"], weight: 5 },
@@ -21,14 +21,14 @@ export const SITUATION_LEXICON: Record<SituationKind, WeightedPhrase[]> = {
     { phrases: ["we fought", "argument", "after the fight", "we argued"], weight: 6 },
   ],
   MISUNDERSTANDING: [
-    { phrases: ["misunderstanding", "she thought", "took it the wrong way", "mixed up"], weight: 5 },
+    { phrases: ["misunderstanding", "she thought", "he thought", "took it the wrong way", "mixed up"], weight: 5 },
   ],
   EXAM: [
     { phrases: ["exam tomorrow", "exam today", "has an exam", "test tomorrow", "paper kal", "exam week"], weight: 6 },
     { phrases: ["exam", "presentation", "assignment due"], weight: 3 },
   ],
   BIRTHDAY: [
-    { phrases: ["her birthday", "birthday tomorrow", "birthday next week", "birthday is today"], weight: 6 },
+    { phrases: ["her birthday", "his birthday", "birthday tomorrow", "birthday next week", "birthday is today"], weight: 6 },
   ],
   ANNIVERSARY: [
     { phrases: ["our anniversary", "anniversary tomorrow"], weight: 6 },
@@ -41,19 +41,19 @@ export const SITUATION_LEXICON: Record<SituationKind, WeightedPhrase[]> = {
     { phrases: ["work stress", "office stress", "boss", "shift was heavy"], weight: 4 },
   ],
   FAMILY_EVENT: [
-    { phrases: ["her family", "ammi", "family event", "relative"], weight: 3 },
+    { phrases: ["her family", "his family", "ammi", "family event", "relative"], weight: 3 },
   ],
   GOOD_NEWS: [
-    { phrases: ["did well", "passed her exam", "good news", "she got", "really well", "she succeeded"], weight: 5 },
+    { phrases: ["did well", "passed her exam", "passed his exam", "good news", "she got", "he got", "really well", "she succeeded", "he succeeded"], weight: 5 },
   ],
   BAD_DAY: [
-    { phrases: ["bad day", "rough day", "hard day", "not her day"], weight: 4 },
+    { phrases: ["bad day", "rough day", "hard day", "not her day", "not his day"], weight: 4 },
   ],
   NEEDS_SPACE: [
-    { phrases: ["needs space", "give her space", "don't message", "leave her alone", "don't remind me"], weight: 7 },
+    { phrases: ["needs space", "give her space", "give him space", "don't message", "leave her alone", "leave him alone", "don't remind me"], weight: 7 },
   ],
   WANTS_SUPPORT: [
-    { phrases: ["wants support", "needs me", "feeling sad", "cheer her up", "make something nice"], weight: 4 },
+    { phrases: ["wants support", "needs me", "feeling sad", "cheer her up", "cheer him up", "make something nice"], weight: 4 },
   ],
   UNKNOWN: [],
 };
@@ -75,6 +75,7 @@ export const UNCLEAR_FAULT_PHRASES = [
   "not sure",
   "maybe",
   "i think she",
+  "i think he",
   "unclear",
   "don't know why",
   "what did i do",

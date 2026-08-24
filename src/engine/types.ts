@@ -124,6 +124,8 @@ export interface HistoryMatch {
 
 export interface EngineProfile {
   partnerName: string;
+  userGender?: "male" | "female" | null;
+  partnerGender?: "male" | "female" | null;
   personality?: string;
   likes: string[];
   dislikes: string[];

@@ -9,6 +9,7 @@ const schema = z.object({
   name: z.string().min(1).max(80),
   email: z.string().email(),
   password: z.string().min(8).max(100),
+  gender: z.enum(["male", "female"]),
 });
 
 export async function POST(req: Request) {
@@ -34,6 +35,7 @@ export async function POST(req: Request) {
         email,
         name: body.name,
         passwordHash,
+        gender: body.gender,
         settings: { create: {} },
         onboarding: { create: { step: 1 } },
       },

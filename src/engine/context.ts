@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { getPrimaryRelationship } from "@/server/auth";
 import { foodPrefsFromMap, loadLifestyleMemory } from "@/lifestyle/build";
 import type { EngineContext, EngineProfile, HistoryMatch, ParsedCommand } from "@/engine/types";
+import { parseGender, voiceFor } from "@/lib/voice";
 
 function pref(map: Map<string, string>, key: string) {
   return map.get(key)?.trim() || undefined;
@@ -21,8 +22,14 @@ export async function loadEngineContext(userId: string): Promise<EngineContext> 
     ...(pref(prefs, "foods")?.split(/[,;]/).map((s) => s.trim()) ?? []),
   ].filter(Boolean);
 
+  const partnerGender = parseGender(relationship?.partnerGender);
+  const userGender = parseGender(user.gender);
+  const voice = voiceFor(partnerGender);
+
   const profile: EngineProfile = {
-    partnerName: relationship?.partnerName || "her",
+    partnerName: relationship?.partnerName || voice.partnerNoun,
+    userGender,
+    partnerGender,
     personality: pref(prefs, "personality"),
     likes: [...new Set(likes)].slice(0, 12),
     dislikes: (relationship?.dislikes ?? []).map((d) => d.value),

@@ -2,6 +2,7 @@ import { guessPartnerName, type ParsedMessage } from "@/chat/parse";
 import { extractChatCalendar, reelQueriesFromChat } from "@/chat/dates";
 import { extractChatTimeline } from "@/chat/timeline";
 import { extractLifestyleMentions } from "@/lifestyle/extract";
+import { voiceFor } from "@/lib/voice";
 
 export interface ExtractedFact {
   title: string;
@@ -135,9 +136,10 @@ function peakIndex(hist: number[]) {
 
 export function analyzeWhatsAppChat(
   messages: ParsedMessage[],
-  opts: { userName?: string | null; fileName?: string; partnerHint?: string | null } = {},
+  opts: { userName?: string | null; fileName?: string; partnerHint?: string | null; partnerGender?: string | null } = {},
 ): ChatAnalysis {
   const partnerName = guessPartnerName(messages, opts);
+  const voice = voiceFor(opts.partnerGender);
   const senders = new Map<string, number>();
   const hourHistogram = Array.from({ length: 24 }, () => 0);
   const weekdayHistogram = Array.from({ length: 7 }, () => 0);
@@ -232,7 +234,7 @@ export function analyzeWhatsAppChat(
     ...pull(/\bi hate ([^.!?\n]{3,60})/gi, partnerTexts),
     ...pull(/\b(?:don't|dont|do not) (?:want|need) ([^.!?\n]{3,60})/gi, partnerTexts),
     ...pull(/\bneed ([^.!?\n]{3,50}) around me/gi, partnerTexts),
-    ...(/(healthy habits|no bad thing|nothing wrong)/i.test(partnerJoined) ? ["unhealthy habits around her"] : []),
+    ...(/(healthy habits|no bad thing|nothing wrong)/i.test(partnerJoined) ? [`unhealthy habits around ${voice.them}`] : []),
     ...(/(disrespect|disappointing)/i.test(partnerJoined) ? ["feeling disrespected or dismissed"] : []),
   ]);
   const boundaries = unique([
@@ -278,7 +280,7 @@ export function analyzeWhatsAppChat(
   for (const b of boundaries.slice(0, 5)) {
     facts.push({
       title: "Boundary from chat",
-      content: `${partnerName} wrote that you should not / she needs: ${b}`,
+      content: `${partnerName} wrote that you should not / ${voice.they} needs: ${b}`,
       category: "PREFERENCES",
       importance: "HIGH",
     });

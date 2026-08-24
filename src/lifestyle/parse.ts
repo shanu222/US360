@@ -14,7 +14,7 @@ export function parseLifestyleHints(raw: string, now = new Date()): LifestyleHin
   if (/\bplan (our |the )?weekend|this weekend|what can we do this weekend\b/.test(lower)) intents.push("PLAN_WEEKEND");
   if (/\bwhat should we do today|plan (today|tomorrow)|what can we do tomorrow|go out tonight\b/.test(lower)) intents.push("PLAN_DAY");
   if (
-    /\bwhat should we eat|where should we eat|good for dinner|suggest a restaurant|find a (good )?restaurant|what should we (have|order)|find a good burger|dinner in|what is good near|find something she likes|she wants (chinese|japanese|italian|thai|burger)|cheap restaurant|romantic restaurant|where should we go for dinner|find somewhere (nice|she would love)\b/.test(
+    /\bwhat should we eat|where should we eat|good for dinner|suggest a restaurant|find a (good )?restaurant|what should we (have|order)|find a good burger|dinner in|what is good near|find something (she|he) likes|s?he wants (chinese|japanese|italian|thai|burger)|cheap restaurant|romantic restaurant|where should we go for dinner|find somewhere (nice|(she|he) would love)\b/.test(
       lower,
     )
   ) {

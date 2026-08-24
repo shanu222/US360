@@ -1,49 +1,68 @@
-export const PROFILE_FIELDS = [
-  { key: "personality", label: "Personality / preferences", group: "about" },
-  { key: "communication_style", label: "Communication style", group: "about" },
-  { key: "makes_happy", label: "Things that make her happy", group: "about" },
-  { key: "upsets", label: "Things that upset her", group: "about" },
-  { key: "calms", label: "Things that calm her", group: "about" },
-  { key: "flowers", label: "Favorite flowers", group: "favorites" },
-  { key: "colors", label: "Favorite colors", group: "favorites" },
-  { key: "foods", label: "Favorite foods", group: "favorites" },
-  { key: "songs", label: "Favorite songs", group: "favorites" },
-  { key: "movies", label: "Favorite movies", group: "favorites" },
-  { key: "activities", label: "Favorite activities", group: "favorites" },
-  { key: "places", label: "Favorite places", group: "favorites" },
-  { key: "gifts", label: "Favorite gifts", group: "favorites" },
-  { key: "apology_style", label: "How she prefers apologies", group: "conflict" },
-  { key: "conflict_style", label: "Communication during conflict", group: "conflict" },
-  { key: "wants_space", label: "Likes space after an argument (yes/no)", group: "conflict" },
-  { key: "message_length", label: "Preferred message length (short/medium/long)", group: "conflict" },
-  { key: "romantic_style", label: "Preferred romantic style", group: "style" },
-  { key: "humor", label: "Preferred humor", group: "style" },
-  { key: "memories_note", label: "Important memories", group: "history" },
-  { key: "promises_note", label: "Important promises", group: "history" },
-  { key: "current_goals", label: "Current goals", group: "now" },
-  { key: "current_concerns", label: "Current concerns", group: "now" },
-  { key: "partner_instagram", label: "Her Instagram username (for Send)", group: "send" },
-  { key: "partner_whatsapp", label: "Her WhatsApp number with country code", group: "send" },
-  { key: "partner_facebook", label: "Her Facebook or Messenger username", group: "send" },
-  { key: "partner_email", label: "Her email address", group: "send" },
-  { key: "user_city", label: "Your city (no home address — e.g. Islamabad)", group: "city" },
-  { key: "partner_cuisines", label: "Her favorite cuisines", group: "food" },
-  { key: "partner_dishes", label: "Her favorite dishes", group: "food" },
-  { key: "partner_restaurants", label: "Her favorite restaurants", group: "food" },
-  { key: "partner_drinks", label: "Her favorite drinks", group: "food" },
-  { key: "partner_desserts", label: "Her favorite desserts", group: "food" },
-  { key: "partner_food_dislikes", label: "Foods she dislikes", group: "food" },
-  { key: "partner_allergies", label: "Allergies or diet notes she shared", group: "food" },
-  { key: "partner_spice", label: "Her spice preference", group: "food" },
-  { key: "partner_diet", label: "Vegetarian / non-vegetarian preference", group: "food" },
-  { key: "partner_budget", label: "Preferred dining budget (low / medium / high)", group: "food" },
-  { key: "partner_dining_env", label: "Preferred dining environment", group: "food" },
-  { key: "user_cuisines", label: "Your favorite cuisines", group: "food" },
-  { key: "user_dishes", label: "Your favorite dishes", group: "food" },
-  { key: "user_drinks", label: "Your favorite drinks", group: "food" },
-  { key: "user_desserts", label: "Your favorite desserts", group: "food" },
-  { key: "user_food_dislikes", label: "Foods you dislike", group: "food" },
-  { key: "user_budget", label: "Your dining budget (low / medium / high)", group: "food" },
-] as const;
+import { voiceFor, type PartnerVoice } from "@/lib/voice";
 
-export type ProfileKey = (typeof PROFILE_FIELDS)[number]["key"];
+type FieldDef = {
+  key: string;
+  group: string;
+  label: (v: PartnerVoice) => string;
+};
+
+const FIELD_DEFS: FieldDef[] = [
+  { key: "personality", group: "about", label: () => "Personality / preferences" },
+  { key: "communication_style", group: "about", label: () => "Communication style" },
+  { key: "makes_happy", group: "about", label: (v) => `Things that make ${v.them} happy` },
+  { key: "upsets", group: "about", label: (v) => `Things that upset ${v.them}` },
+  { key: "calms", group: "about", label: (v) => `Things that calm ${v.them}` },
+  { key: "flowers", group: "favorites", label: () => "Favorite flowers" },
+  { key: "colors", group: "favorites", label: () => "Favorite colors" },
+  { key: "foods", group: "favorites", label: () => "Favorite foods" },
+  { key: "songs", group: "favorites", label: () => "Favorite songs" },
+  { key: "movies", group: "favorites", label: () => "Favorite movies" },
+  { key: "activities", group: "favorites", label: () => "Favorite activities" },
+  { key: "places", group: "favorites", label: () => "Favorite places" },
+  { key: "gifts", group: "favorites", label: () => "Favorite gifts" },
+  { key: "apology_style", group: "conflict", label: (v) => `How ${v.they} prefers apologies` },
+  { key: "conflict_style", group: "conflict", label: () => "Communication during conflict" },
+  { key: "wants_space", group: "conflict", label: () => "Likes space after an argument (yes/no)" },
+  { key: "message_length", group: "conflict", label: () => "Preferred message length (short/medium/long)" },
+  { key: "romantic_style", group: "style", label: () => "Preferred romantic style" },
+  { key: "humor", group: "style", label: () => "Preferred humor" },
+  { key: "memories_note", group: "history", label: () => "Important memories" },
+  { key: "promises_note", group: "history", label: () => "Important promises" },
+  { key: "current_goals", group: "now", label: () => "Current goals" },
+  { key: "current_concerns", group: "now", label: () => "Current concerns" },
+  { key: "partner_instagram", group: "send", label: (v) => `${v.Their} Instagram username (for Send)` },
+  { key: "partner_whatsapp", group: "send", label: (v) => `${v.Their} WhatsApp number with country code` },
+  { key: "partner_facebook", group: "send", label: (v) => `${v.Their} Facebook or Messenger username` },
+  { key: "partner_email", group: "send", label: (v) => `${v.Their} email address` },
+  { key: "user_city", group: "city", label: () => "Your city (no home address — e.g. Islamabad)" },
+  { key: "partner_cuisines", group: "food", label: (v) => `${v.Their} favorite cuisines` },
+  { key: "partner_dishes", group: "food", label: (v) => `${v.Their} favorite dishes` },
+  { key: "partner_restaurants", group: "food", label: (v) => `${v.Their} favorite restaurants` },
+  { key: "partner_drinks", group: "food", label: (v) => `${v.Their} favorite drinks` },
+  { key: "partner_desserts", group: "food", label: (v) => `${v.Their} favorite desserts` },
+  { key: "partner_food_dislikes", group: "food", label: (v) => `Foods ${v.they} dislikes` },
+  { key: "partner_allergies", group: "food", label: (v) => `Allergies or diet notes ${v.they} shared` },
+  { key: "partner_spice", group: "food", label: (v) => `${v.Their} spice preference` },
+  { key: "partner_diet", group: "food", label: () => "Vegetarian / non-vegetarian preference" },
+  { key: "partner_budget", group: "food", label: () => "Preferred dining budget (low / medium / high)" },
+  { key: "partner_dining_env", group: "food", label: () => "Preferred dining environment" },
+  { key: "user_cuisines", group: "food", label: () => "Your favorite cuisines" },
+  { key: "user_dishes", group: "food", label: () => "Your favorite dishes" },
+  { key: "user_drinks", group: "food", label: () => "Your favorite drinks" },
+  { key: "user_desserts", group: "food", label: () => "Your favorite desserts" },
+  { key: "user_food_dislikes", group: "food", label: () => "Foods you dislike" },
+  { key: "user_budget", group: "food", label: () => "Your dining budget (low / medium / high)" },
+];
+
+export function profileFields(partnerGender?: string | null) {
+  const v = voiceFor(partnerGender);
+  return FIELD_DEFS.map((field) => ({
+    key: field.key,
+    group: field.group,
+    label: field.label(v),
+  }));
+}
+
+export const PROFILE_FIELDS = profileFields("female");
+
+export type ProfileKey = (typeof FIELD_DEFS)[number]["key"];

@@ -10,6 +10,7 @@ import {
   localWeeklyFocus,
 } from "@/ai/local-replies";
 import type { SituationAnalysisResult, ToneReviewResult, GiftIdea } from "@/types";
+import { voiceDeep, voiceFor } from "@/lib/voice";
 
 export async function analyzeSituation(
   userId: string,
@@ -50,7 +51,8 @@ What I want: ${input.whatUserWants ?? "not specified"}`,
       recommendation: String(parsed.recommendation).toUpperCase().replaceAll(" ", "_") as SituationAnalysisResult["recommendation"],
     };
   } catch {
-    return localSituation(input.description) as SituationAnalysisResult;
+    const ctx = await buildAIContext(userId).catch(() => null);
+    return voiceDeep(localSituation(input.description) as SituationAnalysisResult, ctx?.partnerGender);
   }
 }
 
@@ -76,7 +78,8 @@ alternatives: array of {style: soft|natural|direct|short|apologetic, text}.`,
     if (!parsed.headline || !Array.isArray(parsed.alternatives)) throw new Error("AI_PARSE");
     return parsed;
   } catch {
-    return localToneReview() as ToneReviewResult;
+    const ctx = await buildAIContext(userId).catch(() => null);
+    return voiceDeep(localToneReview() as ToneReviewResult, ctx?.partnerGender);
   }
 }
 
@@ -169,13 +172,16 @@ Return JSON: { ideas: [{ title, why, budget, preparation, message, effort: free|
     if (!Array.isArray(parsed.ideas) || !parsed.ideas.length) throw new Error("AI_PARSE");
     return parsed;
   } catch {
-    return localGiftIdeas() as { ideas: GiftIdea[] };
+    const ctx = await buildAIContext(userId).catch(() => null);
+    return voiceDeep(localGiftIdeas() as { ideas: GiftIdea[] }, ctx?.partnerGender);
   }
 }
 
 export async function generateSmileIdeas(userId: string, extras?: { budget?: string; time?: string }) {
+  const ctx = await buildAIContext(userId).catch(() => null);
+  const them = voiceFor(ctx?.partnerGender).them;
   return generateGiftIdeas(userId, {
-    occasion: "Make her smile today",
+    occasion: `Make ${them} smile today`,
     budget: extras?.budget ?? "prefer free or low",
     timeAvailable: extras?.time ?? "a little time",
   });
@@ -203,7 +209,8 @@ Return JSON: { title: string, body: string }`,
     if (!parsed.title || !parsed.body) throw new Error("AI_PARSE");
     return parsed;
   } catch {
-    return localWeeklyFocus();
+    const ctx = await buildAIContext(userId).catch(() => null);
+    return voiceDeep(localWeeklyFocus(), ctx?.partnerGender);
   }
 }
 
