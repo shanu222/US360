@@ -22,6 +22,10 @@ export const PROFILE_FIELDS = [
   { key: "promises_note", label: "Important promises", group: "history" },
   { key: "current_goals", label: "Current goals", group: "now" },
   { key: "current_concerns", label: "Current concerns", group: "now" },
+  { key: "partner_instagram", label: "Her Instagram username (for Send)", group: "send" },
+  { key: "partner_whatsapp", label: "Her WhatsApp number with country code", group: "send" },
+  { key: "partner_facebook", label: "Her Facebook or Messenger username", group: "send" },
+  { key: "partner_email", label: "Her email address", group: "send" },
 ] as const;
 
 export type ProfileKey = (typeof PROFILE_FIELDS)[number]["key"];

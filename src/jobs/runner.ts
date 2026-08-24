@@ -10,6 +10,7 @@ import { sendPush } from "@/lib/push";
 import { sendEmail } from "@/lib/email";
 import { localDateKey, localHour } from "@/lib/utils";
 import { sendWhatsAppReminder, whatsappConfigured } from "@/integrations/whatsapp";
+import { deliverOutbound } from "@/integrations/deliver";
 
 function inQuietHours(settings: { quietHoursStart: string; quietHoursEnd: string }, hour: number) {
   const start = Number(settings.quietHoursStart.split(":")[0]);
@@ -322,10 +323,63 @@ export async function unresolvedNudges(now = new Date()) {
   }
 }
 
+export async function processOutboundSends(now = new Date()) {
+  let due: Array<{
+    id: string;
+    userId: string;
+    channel: string;
+    body: string;
+    subject: string | null;
+    toAddress: string | null;
+    openUrl: string | null;
+  }> = [];
+  try {
+    due = await db.outboundSend.findMany({
+      where: { status: "scheduled", scheduledAt: { lte: now } },
+      take: 20,
+    });
+  } catch {
+    return;
+  }
+  for (const item of due) {
+    await markJob("outbound-send", `outbound:${item.id}`, async () => {
+      const result = await deliverOutbound({
+        userId: item.userId,
+        channel: item.channel as "instagram" | "facebook" | "whatsapp" | "email",
+        body: item.body,
+        subject: item.subject ?? undefined,
+        to: item.toAddress,
+        openUrl: item.openUrl,
+      });
+      await db.outboundSend.update({
+        where: { id: item.id },
+        data: {
+          status: result.sent ? "sent" : result.status,
+          sentAt: result.sent ? new Date() : undefined,
+          error: result.reason,
+          openUrl: result.openUrl ?? item.openUrl,
+        },
+      });
+      if (result.sent) {
+        await notify(item.userId, "EVENT_REMINDER", "Reminder sent", item.body.slice(0, 140));
+      } else {
+        await notify(
+          item.userId,
+          "EVENT_REMINDER",
+          "Reminder ready — manual send",
+          result.reason || "Open the linked app to send it yourself.",
+        );
+      }
+      return result;
+    });
+  }
+}
+
 export async function runAllJobs(now = new Date()) {
   await prepareDailyContent(now);
   await sendEventReminders(now);
   await processReelSchedules(now);
   await weeklyBetterPartner(now);
   await unresolvedNudges(now);
+  await processOutboundSends(now);
 }

@@ -139,6 +139,10 @@ export interface EngineProfile {
   goals?: string;
   concerns?: string;
   communicationStyle?: string;
+  instagram?: string;
+  whatsapp?: string;
+  facebook?: string;
+  email?: string;
 }
 
 export interface EngineContext {
@@ -148,7 +152,7 @@ export interface EngineContext {
   upcoming: { title: string; type: string; startAt: Date; notes?: string | null }[];
   recentSituations: { description: string; status: string; createdAt: Date }[];
   recentCards: { category: string; theme: string; createdAt: Date }[];
-  recentReels: { id: string; url: string; category: string; notes?: string | null; createdAt: Date }[];
+  recentReels: { id: string; url: string; category: string; notes?: string | null; favorite?: boolean; createdAt: Date }[];
   recentMessages: { category: string; content: string }[];
   history: HistoryMatch[];
   lastParse: ParsedCommand | null;
@@ -161,6 +165,9 @@ export interface EngineContext {
     timeline: { at: string | null; event: string; situation: string; outcome?: string }[];
     conflictSignals: number;
     avgPartnerLength: number;
+    reelQueries: string[];
+    foods: string[];
+    activities: string[];
   };
 }
 
@@ -172,6 +179,39 @@ export interface PreparePlan {
   reelCategory: string;
   reminders: string[];
   activity: string;
+}
+
+export interface PreparedAction {
+  id: string;
+  kind: "calendar" | "reminder_user" | "reminder_her" | "message" | "card" | "reel" | "space";
+  title: string;
+  detail: string;
+  required: boolean;
+  selected: boolean;
+}
+
+export interface ReminderPlan {
+  eventTitle: string;
+  eventType: string;
+  startAt: string;
+  forName: string;
+  userReminderAt: string;
+  herReminderAt: string;
+  userMessage: string;
+  herMessage: string;
+}
+
+export interface PlatformShare {
+  caption: string;
+  whatsapp: string;
+  instagram: string;
+  instagramProfile: string | null;
+  instagramDm: string | null;
+  facebook: string;
+  email: string | null;
+  missingWhatsapp: boolean;
+  missingInstagram: boolean;
+  missingEmail: boolean;
 }
 
 export interface CommandDecision {
@@ -200,11 +240,23 @@ export interface CommandResultView {
   avoid: string[];
   message: string | null;
   messageCategory: string | null;
-  reel: { id: string; url: string; category: string; reason: string } | null;
+  reel: {
+    id: string;
+    url: string;
+    category: string;
+    reason: string;
+    query?: string;
+    searchUrl?: string;
+    caption?: string;
+    fromLibrary?: boolean;
+  } | null;
+  share: PlatformShare | null;
   card: { id: string; theme: string; message: string; category: string } | null;
   timing: string;
   plan: PreparePlan | null;
   pendingEvent: { title: string; type: string; startAt: string; notes: string } | null;
+  reminderPlan: ReminderPlan | null;
+  actions: PreparedAction[];
   historyNotes: string[];
   nothingNeeded: boolean;
   emotion: Emotion;

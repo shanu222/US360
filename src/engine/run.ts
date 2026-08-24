@@ -1,28 +1,16 @@
 import { db } from "@/lib/db";
-import { pickTheme, renderCardHtml } from "@/ai/cards";
-import { fingerprint } from "@/lib/crypto";
+import { pickTheme } from "@/ai/cards";
 import { loadEngineContext } from "@/engine/context";
 import { parseCommand } from "@/engine/parse";
 import { decideCommand } from "@/engine/decide";
 import { composeMessage } from "@/engine/templates";
+import { buildSharePack, pickBestReel } from "@/engine/reels";
+import { buildActions, buildReminderPlan } from "@/engine/actions";
 import type { CommandResultView, ParsedCommand } from "@/engine/types";
-import type { CardCategory, CalendarEventType, MessageCategory, Prisma } from "@prisma/client";
+import type { CalendarEventType, Prisma } from "@prisma/client";
 
 function asJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
-}
-
-function pickReel(
-  reels: { id: string; url: string; category: string; notes?: string | null }[],
-  category: string | null,
-  recentCardsThemes: string[],
-) {
-  if (!category) return null;
-  const pool = reels.filter((r) => r.category === category);
-  const fallback = reels.filter((r) => r.category !== "ROMANTIC");
-  const chosen = (pool[0] ?? fallback[0] ?? reels[0]) ?? null;
-  void recentCardsThemes;
-  return chosen;
 }
 
 export async function runCommand(opts: {
@@ -48,35 +36,40 @@ export async function runCommand(opts: {
   const relationship = await db.relationship.findFirst({ where: { userId: opts.userId }, orderBy: { createdAt: "asc" } });
 
   let card: CommandResultView["card"] = null;
-  if (decision.cardCategory && (parsed.wantsCard || parsed.intents.includes("PREPARE_EVERYTHING") || parsed.intents.includes("CHEER_UP"))) {
+  if (decision.cardCategory) {
     const theme = pickTheme(decision.cardCategory, ctx.recentCards.map((c) => c.theme));
     const cardMessage = message ?? composeMessage(parsed, ctx.profile, decision.messageKey);
-    const html = renderCardHtml({
-      message: cardMessage,
-      themeId: theme.id,
-      partnerName: ctx.profile.partnerName,
-      occasion: decision.cardCategory.replaceAll("_", " "),
-    });
-    const created = await db.card.create({
-      data: {
-        userId: opts.userId,
-        relationshipId: relationship?.id,
-        category: decision.cardCategory as CardCategory,
-        theme: theme.id,
-        message: cardMessage,
-        html,
-        status: "READY",
-        fingerprint: fingerprint([opts.userId, "command-card", cardMessage, theme.id, Date.now().toString()]),
-      },
-    });
-    card = { id: created.id, theme: created.theme, message: created.message, category: created.category };
+    card = { id: "preview", theme: theme.id, message: cardMessage, category: decision.cardCategory };
   }
 
-  const reelRow = pickReel(ctx.recentReels, decision.reelCategory, []);
-  const reel =
-    decision.reelCategory && reelRow
-      ? { id: reelRow.id, url: reelRow.url, category: reelRow.category, reason: decision.reelReason ?? "From your Reel library." }
-      : null;
+  const picked = decision.reelCategory
+    ? pickBestReel({
+        category: decision.reelCategory,
+        emotion: parsed.primaryEmotion,
+        situation: parsed.primarySituation,
+        reels: ctx.recentReels,
+        likes: [...ctx.profile.likes, ...ctx.chat.likes],
+        foods: [...ctx.profile.foods, ...ctx.chat.foods],
+        topics: ctx.chat.topics,
+        dislikes: [...ctx.profile.dislikes, ...ctx.chat.dislikes],
+        calms: ctx.profile.calms,
+        movies: ctx.profile.movies,
+        songs: ctx.profile.songs,
+        reelQueries: ctx.chat.reelQueries,
+        partnerName: ctx.profile.partnerName,
+      })
+    : null;
+  const reel = picked ? { ...picked, reason: decision.reelReason ?? picked.reason } : null;
+  const share = reel
+    ? buildSharePack({
+        reelUrl: reel.url,
+        caption: (message && message.length < 180 ? message : picked?.caption) || "Thought of you.",
+        instagram: ctx.profile.instagram,
+        whatsapp: ctx.profile.whatsapp,
+        facebook: ctx.profile.facebook,
+        email: ctx.profile.email,
+      })
+    : null;
 
   if (decision.quietUntil) {
     await db.userSettings.upsert({
@@ -87,35 +80,34 @@ export async function runCommand(opts: {
   }
 
   if (message && parsed.wantsMessage) {
-    await db.message.create({
-      data: {
-        userId: opts.userId,
-        relationshipId: relationship?.id,
-        category: (decision.recommendedAction === "APOLOGIZE"
-          ? "APOLOGY"
-          : decision.cardCategory === "GOOD_MORNING"
-            ? "GOOD_MORNING"
-            : "CUSTOM") as MessageCategory,
-        content: message,
-        source: "command-engine",
-        tone: parsed.style,
-        length: parsed.shorter ? "short" : ctx.profile.messageLength,
-      },
-    });
+    /* drafts persist when the user applies actions */
   }
+
+  const reminderPlan = buildReminderPlan(parsed, ctx.profile);
+  const draftedMessage = decision.recommendedAction === "GIVE_SPACE" ? composeMessage(parsed, ctx.profile, "space") : message;
+  const actions = buildActions({
+    parsed,
+    decision,
+    hasMessage: Boolean(draftedMessage && decision.recommendedAction !== "GIVE_SPACE"),
+    hasCard: Boolean(card),
+    hasReel: Boolean(reel),
+  });
 
   const view: CommandResultView = {
     situationDetected: decision.situationDetected,
     recommendedAction: decision.recommendedAction.replaceAll("_", " "),
     approach: decision.approach,
     avoid: decision.avoid,
-    message: decision.recommendedAction === "GIVE_SPACE" ? composeMessage(parsed, ctx.profile, "space") : message,
+    message: draftedMessage,
     messageCategory: decision.messageKey,
     reel,
+    share,
     card,
     timing: decision.timing,
     plan: decision.plan,
     pendingEvent: decision.pendingEvent,
+    reminderPlan,
+    actions,
     historyNotes: decision.historyNotes,
     nothingNeeded: decision.nothingNeeded && !parsed.wantsMessage && !parsed.wantsCard,
     emotion: parsed.primaryEmotion,
@@ -140,6 +132,7 @@ export async function runCommand(opts: {
             situation: view.situation,
             avoid: view.avoid,
             timing: view.timing,
+            reel: view.reel,
           }),
           emotion: parsed.primaryEmotion,
           situation: parsed.primarySituation,
@@ -158,6 +151,14 @@ export async function runCommand(opts: {
 export async function savePendingEvent(userId: string, event: { title: string; type: string; startAt: string; notes?: string }) {
   const relationship = await db.relationship.findFirst({ where: { userId }, orderBy: { createdAt: "asc" } });
   const startAt = new Date(event.startAt);
+  const existing = await db.calendarEvent.findFirst({
+    where: {
+      userId,
+      title: event.title,
+      startAt: { gte: new Date(startAt.getTime() - 12 * 3600_000), lte: new Date(startAt.getTime() + 12 * 3600_000) },
+    },
+  });
+  if (existing) return existing;
   const created = await db.calendarEvent.create({
     data: {
       userId,

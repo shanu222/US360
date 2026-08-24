@@ -39,6 +39,10 @@ const schema = z.object({
   timezone: z.string().optional(),
   whatsappNumber: z.string().optional(),
   whatsappReminders: z.boolean().optional(),
+  autoInstagram: z.boolean().optional(),
+  autoFacebook: z.boolean().optional(),
+  autoWhatsapp: z.boolean().optional(),
+  autoEmail: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request) {

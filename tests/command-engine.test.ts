@@ -31,7 +31,7 @@ function ctx(over: Partial<EngineContext> = {}): EngineContext {
       { emotion: "ANGER", situation: "MISSED_CALL", recommendation: "APOLOGIZE", helpfulCount: 3, unhelpfulCount: 0, note: "" },
     ],
     lastParse: null,
-    chat: { likes: ["chai"], dislikes: [], topics: ["class"], style: ["Short messages"], timeline: [], conflictSignals: 5, avgPartnerLength: 40 },
+    chat: { likes: ["chai"], dislikes: [], topics: ["class"], style: ["Short messages"], timeline: [], conflictSignals: 5, avgPartnerLength: 40, reelQueries: ["chai reel"], foods: ["biryani"], activities: [] },
     ...over,
   };
 }
@@ -63,11 +63,34 @@ describe("command parser", () => {
 
 describe("decision engine", () => {
   it("recommends apology and blocks funny reels during anger with fault", () => {
-    const parsed = parseCommand("She is angry because I forgot to call her. Suggest a message and find an appropriate Reel.");
+    const parsed = parseCommand("She is angry because I forgot to call her.");
     const decision = decideCommand(parsed, ctx());
     expect(decision.recommendedAction).toBe("APOLOGIZE");
     expect(decision.reelCategory).toBeNull();
     expect(decision.avoid.some((a) => /joke|funny/i.test(a))).toBe(true);
+  });
+
+  it("offers a calming reel when asked to search reels while she is angry", () => {
+    const parsed = parseCommand("She is angry. Search reels to calm her.");
+    expect(parsed.wantsReel).toBe(true);
+    const decision = decideCommand(parsed, ctx());
+    expect(decision.reelCategory).toBe("CUTE");
+    expect(decision.reelCategory).not.toBe("FUNNY");
+  });
+
+  it("does not auto-request a reel for a sad mood", () => {
+    const parsed = parseCommand("She is sad.");
+    expect(parsed.wantsReel).toBe(false);
+    const decision = decideCommand(parsed, ctx());
+    expect(decision.recommendedAction).toBe("SUPPORT");
+    expect(decision.reelCategory).toBeNull();
+  });
+
+  it("recommends space when she is angry and her profile prefers space", () => {
+    const parsed = parseCommand("She is angry.");
+    const decision = decideCommand(parsed, ctx());
+    expect(decision.recommendedAction).toBe("GIVE_SPACE");
+    expect(decision.reelCategory).toBeNull();
   });
 
   it("gives space when asked", () => {
@@ -84,6 +107,11 @@ describe("decision engine", () => {
     expect(decision.cardCategory).toBe("MOTIVATION");
     expect(decision.pendingEvent?.type).toBe("EXAM");
   });
+
+  it("detects a meeting on a weekday", () => {
+    const parsed = parseCommand("She has an important meeting next Thursday.");
+    expect(parsed.eventHint?.title).toMatch(/Meeting|Presentation/i);
+  });
 });
 
 describe("templates", () => {
@@ -92,5 +120,43 @@ describe("templates", () => {
     expect(out).toContain("the missed call");
     const msg = composeMessage(parseCommand("She is angry because I forgot to call her."), ctx().profile, "apology");
     expect(msg.toLowerCase()).toMatch(/sorry/);
+  });
+});
+
+describe("reel picker and share links", () => {
+  it("prefers a cute saved reel that matches chat likes over a funny one when she is angry", async () => {
+    const { pickBestReel } = await import("@/engine/reels");
+    const picked = pickBestReel({
+      category: "CUTE",
+      emotion: "ANGER",
+      situation: "UNKNOWN",
+      reels: [
+        { id: "funny", url: "https://instagram.com/reel/funny", category: "FUNNY", notes: "joke" },
+        { id: "cute", url: "https://instagram.com/reel/cute", category: "CUTE", notes: "chai comfort", favorite: true },
+      ],
+      likes: ["chai"],
+      foods: ["biryani"],
+      topics: ["class"],
+      dislikes: ["smoking"],
+      partnerName: "Asma",
+    });
+    expect(picked?.id).toBe("cute");
+    expect(picked?.fromLibrary).toBe(true);
+  });
+
+  it("builds WhatsApp, Instagram, and Facebook send links from her profile", async () => {
+    const { buildSharePack } = await import("@/engine/reels");
+    const pack = buildSharePack({
+      reelUrl: "https://instagram.com/reel/abc",
+      caption: "Thought of you.",
+      instagram: "@asma",
+      whatsapp: "+92 300 1234567",
+      facebook: "asma.tariq",
+    });
+    expect(pack.whatsapp).toContain("https://wa.me/923001234567");
+    expect(pack.instagramDm).toBe("https://ig.me/m/asma");
+    expect(pack.facebook).toContain("asma.tariq");
+    expect(pack.missingInstagram).toBe(false);
+    expect(pack.missingWhatsapp).toBe(false);
   });
 });

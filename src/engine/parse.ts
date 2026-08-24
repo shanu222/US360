@@ -10,9 +10,17 @@ function addDays(base: Date, days: number) {
   return d;
 }
 
+function nextWeekday(from: Date, target: number) {
+  const d = new Date(from);
+  const diff = (target - d.getDay() + 7) % 7 || 7;
+  d.setDate(d.getDate() + diff);
+  d.setHours(10, 0, 0, 0);
+  return d;
+}
+
 function parseEvent(text: string, now: Date): ParsedCommand["eventHint"] {
   const lower = text.toLowerCase();
-  let start = now;
+  let start: Date | null = null;
   let type = "EVENT";
   let title = "Plan from command";
 
@@ -22,16 +30,31 @@ function parseEvent(text: string, now: Date): ParsedCommand["eventHint"] {
   } else if (/\banniversary\b/.test(lower)) {
     type = "ANNIVERSARY";
     title = "Anniversary";
-  } else if (/\bexam|presentation|assignment\b/.test(lower)) {
+  } else if (/\bexam|test\b/.test(lower)) {
     type = "EXAM";
     title = "Exam";
+  } else if (/\bpresentation\b/.test(lower)) {
+    type = "EXAM";
+    title = "Presentation";
+  } else if (/\bmeeting|interview|orientation\b/.test(lower)) {
+    type = "WORK";
+    title = "Meeting";
+  } else if (/\bassignment\b/.test(lower)) {
+    type = "EXAM";
+    title = "Assignment";
   }
 
   if (/\btoday|aaj\b/.test(lower)) start = addDays(now, 0);
   else if (/\btomorrow|kal\b/.test(lower)) start = addDays(now, 1);
   else if (/\bnext week\b/.test(lower)) start = addDays(now, 7);
-  else if (type === "EVENT") return null;
+  else {
+    const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const wd = days.findIndex((d) => new RegExp(`\\b${d}\\b`).test(lower));
+    if (wd >= 0) start = nextWeekday(now, wd);
+  }
 
+  if (!start && type === "EVENT") return null;
+  if (!start) start = addDays(now, 1);
   return { title, type, startAt: start.toISOString() };
 }
 
@@ -60,14 +83,17 @@ export function parseCommand(raw: string, previous?: ParsedCommand | null, now =
   const emotions = topScored(lower, EMOTION_LEXICON, 3);
   const situations = topScored(lower, SITUATION_LEXICON, 3);
 
-  const wantsCard = /\b(create|make).*(card)|card for|good morning card|motivational card|make something nice\b/i.test(lower);
-  const wantsReel = /\b(reel|send her something funny|find a funny|according to this situation)\b/i.test(lower);
-  const wantsMessage = /\b(message|text|write|suggest something|what should i (say|do)|apolog|she is angry|she's angry|she is upset|she is sad)\b/i.test(lower);
+  const wantsCard = /\b(create|make).*(card)|card for|good morning card|motivational card|make something nice|prepare something\b/i.test(lower);
+  const wantsReel =
+    /\b(reel|reels|find (a |me )?(funny |cute |calm |appropriate )?(reel|reels)|search (me )?reels|find something (nice|cute|funny) to send|something (nice|cute) to send)\b/i.test(
+      lower,
+    );
+  const wantsMessage = /\b(message|text|write|suggest something|what should i (say|do)|apolog|she is angry|she's angry|she is upset|she is sad|prepare something appropriate)\b/i.test(lower);
   const wantsHistory = /\b(previous|usually works|look at (our|the) previous|based on our|what you know)\b/i.test(lower);
-  const prepareAll = /\bprepare everything\b/i.test(lower);
+  const prepareAll = /\bprepare everything|prepare something for her birthday\b/i.test(lower);
   const shouldApologize = /\bshould i apologize|write a short apology|say sorry\b/i.test(lower);
   const giveSpace = /\bneeds space|give her space|don't (send|message|remind)\b/i.test(lower);
-  const cheer = /\bcheer her up|make something nice|feeling sad|something i can send\b/i.test(lower);
+  const cheer = /\bcheer her up|make her (smile|laugh|feel better)|i want to make her smile|feeling sad|find something nice for her\b/i.test(lower);
 
   const intents: CommandIntent[] = [];
   if (prepareAll) intents.push("PREPARE_EVERYTHING");
@@ -79,7 +105,7 @@ export function parseCommand(raw: string, previous?: ParsedCommand | null, now =
   if (shouldApologize) intents.push("SHOULD_APOLOGIZE");
   if (cheer) intents.push("CHEER_UP");
   if (followUp) intents.push("MODIFY_TONE");
-  if (/\bexam|birthday|anniversary|tomorrow|next week\b/.test(lower)) intents.push("SAVE_EVENT");
+  if (/\bexam|birthday|anniversary|tomorrow|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|meeting\b/.test(lower)) intents.push("SAVE_EVENT");
   if (!intents.length) intents.push(emotions.length || situations.length ? "ADVICE" : "ADVICE");
 
   const noRomantic = /\bdon'?t send (anything )?romantic|no romantic|not romantic\b/i.test(lower);
@@ -117,7 +143,7 @@ export function parseCommand(raw: string, previous?: ParsedCommand | null, now =
     quietHours: quietHours(lower),
     eventHint: parseEvent(lower, now) ?? base?.eventHint ?? null,
     apologyReason: apologyReason(text) ?? base?.apologyReason ?? null,
-    achievement: /did well in her exam|passed|got the job/i.test(lower) ? "what you did" : base?.achievement ?? null,
+    achievement: /did well|passed|got the job|really well/i.test(lower) ? "what you did" : base?.achievement ?? null,
     urgency,
     style: /\bromantic/.test(lower)
       ? "romantic"

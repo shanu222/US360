@@ -116,17 +116,22 @@ export function decideCommand(parsed: ParsedCommand, ctx: EngineContext): Comman
     historyNotes.unshift("Her birthday is also in view — keep it in mind, but do not let it override the current hurt.");
   }
 
-  let reel = parsed.wantsReel ? then.reel ?? (parsed.wantsFunny ? "FUNNY" : "CUTE") : then.reel;
-  if (parsed.noFunny && reel === "FUNNY") reel = null;
-  if (then.priority === "CRITICAL") reel = null;
+  let reel = then.reel ?? null;
+  if (parsed.wantsReel && then.priority !== "CRITICAL") reel = then.reel ?? (parsed.wantsFunny ? "FUNNY" : "CUTE");
+  if (parsed.wantsReel && then.priority === "CRITICAL") reel = "CUTE";
+  if (!parsed.wantsReel && then.priority === "CRITICAL") reel = null;
+  if (parsed.noFunny && reel === "FUNNY") reel = then.priority === "CRITICAL" ? null : "CUTE";
   if (parsed.wantsFunny && then.priority !== "CRITICAL" && !parsed.noFunny) reel = "FUNNY";
-  if (then.priority === "CRITICAL" && !parsed.wantsCard) {
-    /* apology card is optional */
-  }
+  if (parsed.intents.includes("CHEER_UP") && then.priority !== "CRITICAL" && !reel) reel = "CUTE";
+  if (parsed.wantsSpace) reel = null;
 
-  let card = parsed.wantsCard || then.action === "ENCOURAGE" || then.action === "CELEBRATE" ? then.card : parsed.wantsCard ? then.card : then.card;
+  let card =
+    parsed.wantsCard || parsed.intents.includes("PREPARE_EVERYTHING") || then.action === "CELEBRATE"
+      ? then.card ?? null
+      : then.action === "ENCOURAGE"
+        ? then.card ?? null
+        : null;
   if (parsed.wantsCard && !card) card = parsed.primarySituation === "EXAM" ? "MOTIVATION" : then.action === "APOLOGIZE" ? "SORRY" : "THINKING_OF_YOU";
-  if (then.priority === "CRITICAL" && !parsed.wantsCard && then.action === "APOLOGIZE") card = "SORRY";
   if (parsed.noRomantic && (card === "ROMANTIC" || card === "MISS_YOU")) card = "APPRECIATION";
 
   const quietUntil =
@@ -149,6 +154,18 @@ export function decideCommand(parsed: ParsedCommand, ctx: EngineContext): Comman
     action = "GIVE_SPACE";
     historyNotes.push("Previous helpful mark: short apology + space.");
   }
+  if (
+    parsed.primaryEmotion === "ANGER" &&
+    !parsed.userFault &&
+    !parsed.wantsReel &&
+    (ctx.profile.wantsSpace || similarHelpful?.recommendation === "GIVE_SPACE")
+  ) {
+    action = "GIVE_SPACE";
+    reel = null;
+    card = null;
+    historyNotes.push("Her profile or past moments say space during conflict is safer than a Reel.");
+  }
+  if (action === "GIVE_SPACE") reel = null;
 
   const situationDetected =
     parsed.primarySituation === "MISSED_CALL"
@@ -175,11 +192,13 @@ export function decideCommand(parsed: ParsedCommand, ctx: EngineContext): Comman
     cardCategory: card ?? null,
     reelCategory: reel ?? null,
     reelReason: reel
-      ? reel === "FUNNY"
-        ? "She likes humorous content and this type of Reel has not been blocked by the current situation."
-        : `A ${reel.toLowerCase()} Reel fits the current state better than silence-breaking jokes.`
-      : then.priority === "CRITICAL"
-        ? "No Reel recommended right now."
+      ? then.priority === "CRITICAL"
+        ? "Optional after an apology — a gentle Reel only, never a joke. Not required."
+        : reel === "FUNNY"
+          ? "A light Reel that fits what she already likes, only because this is not a conflict."
+          : `A ${reel.toLowerCase()} Reel from her likes and the chat — only if a Reel still fits.`
+      : then.priority === "CRITICAL" || action === "GIVE_SPACE"
+        ? "No Reel. A joke or romantic Reel would be the wrong move."
         : null,
     nothingNeeded: action === "NO_ACTION" || action === "WAIT" || action === "GIVE_SPACE",
     historyNotes,

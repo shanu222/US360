@@ -49,6 +49,7 @@ model User {
   onboarding          OnboardingState?
   chatImports         ChatImport[]
   commandRuns         CommandRun[]
+  outboundSends       OutboundSend[]
 
   @@index([email])
 }
@@ -754,6 +755,10 @@ model UserSettings {
   quietUntil            DateTime?
   whatsappNumber        String?
   whatsappReminders     Boolean        @default(false)
+  autoInstagram         Boolean        @default(false)
+  autoFacebook          Boolean        @default(false)
+  autoWhatsapp          Boolean        @default(false)
+  autoEmail             Boolean        @default(false)
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
@@ -790,6 +795,28 @@ model AnalyticsEvent {
   @@index([userId])
   @@index([name])
   @@index([createdAt])
+}
+
+model OutboundSend {
+  id          String    @id @default(cuid())
+  userId      String
+  channel     String
+  status      String    @default("scheduled")
+  body        String    @db.Text
+  subject     String?
+  toAddress   String?
+  openUrl     String?
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  error       String?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledAt])
 }
 
 model JobRun {

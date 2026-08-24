@@ -34,7 +34,8 @@ export const SITUATION_LEXICON: Record<SituationKind, WeightedPhrase[]> = {
     { phrases: ["our anniversary", "anniversary tomorrow"], weight: 6 },
   ],
   IMPORTANT_EVENT: [
-    { phrases: ["important day", "interview", "orientation", "big day"], weight: 4 },
+    { phrases: ["important day", "interview", "orientation", "big day", "important meeting", "important event", "important presentation"], weight: 4 },
+    { phrases: ["meeting tomorrow", "has a meeting", "presentation next"], weight: 5 },
   ],
   WORK_STRESS: [
     { phrases: ["work stress", "office stress", "boss", "shift was heavy"], weight: 4 },
@@ -43,7 +44,7 @@ export const SITUATION_LEXICON: Record<SituationKind, WeightedPhrase[]> = {
     { phrases: ["her family", "ammi", "family event", "relative"], weight: 3 },
   ],
   GOOD_NEWS: [
-    { phrases: ["did well", "passed her exam", "good news", "she got"], weight: 5 },
+    { phrases: ["did well", "passed her exam", "good news", "she got", "really well", "she succeeded"], weight: 5 },
   ],
   BAD_DAY: [
     { phrases: ["bad day", "rough day", "hard day", "not her day"], weight: 4 },

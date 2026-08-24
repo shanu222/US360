@@ -173,6 +173,21 @@ export const DECISION_RULES: DecisionRule[] = [
       reel: "FUNNY",
     },
   },
+  {
+    id: "sad-default",
+    when: { emotions: ["SADNESS", "STRESS", "ANXIETY"] },
+    then: {
+      action: "SUPPORT",
+      state: "SUPPORT",
+      priority: "HIGH",
+      avoid: ["Minimizing it", "A punchline if she did not ask for humor", "Flooding her with Reels"],
+      approach: "Validate first. A short supportive note lands better than a Reel, unless she likes light content when down.",
+      timing: "Send one supportive message if it feels right. A Reel is optional.",
+      messageKey: "support",
+      card: "THINKING_OF_YOU",
+      reel: null,
+    },
+  },
 ];
 
 export const COMMUNICATION_RULES = [

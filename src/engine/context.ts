@@ -54,6 +54,10 @@ export async function loadEngineContext(userId: string): Promise<EngineContext> 
     goals: pref(prefs, "current_goals"),
     concerns: pref(prefs, "current_concerns"),
     communicationStyle: relationship?.communicationStyle || pref(prefs, "communication_style"),
+    instagram: pref(prefs, "partner_instagram"),
+    whatsapp: pref(prefs, "partner_whatsapp"),
+    facebook: pref(prefs, "partner_facebook"),
+    email: pref(prefs, "partner_email"),
   };
 
   const now = new Date();
@@ -78,8 +82,8 @@ export async function loadEngineContext(userId: string): Promise<EngineContext> 
     db.reel.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
-      take: 20,
-      select: { id: true, url: true, category: true, notes: true, createdAt: true },
+      take: 40,
+      select: { id: true, url: true, category: true, notes: true, favorite: true, createdAt: true },
     }),
     db.message.findMany({
       where: { userId },
@@ -128,6 +132,9 @@ export async function loadEngineContext(userId: string): Promise<EngineContext> 
     timeline: [],
     conflictSignals: 0,
     avgPartnerLength: 0,
+    reelQueries: [],
+    foods: [],
+    activities: [],
   };
   try {
     const imported = await db.chatImport.findFirst({
@@ -138,10 +145,13 @@ export async function loadEngineContext(userId: string): Promise<EngineContext> 
       summary?: string;
       likes?: string[];
       dislikes?: string[];
+      foods?: string[];
+      activities?: string[];
       topics?: { topic: string }[];
       communicationStyle?: string[];
       timeline?: EngineContext["chat"]["timeline"];
       conflictSignals?: number;
+      reelQueries?: string[];
     };
     const stats = (imported?.stats ?? {}) as { conflictSignals?: number; avgPartnerLength?: number };
     chat = {
@@ -153,9 +163,14 @@ export async function loadEngineContext(userId: string): Promise<EngineContext> 
       timeline: analysis.timeline ?? [],
       conflictSignals: analysis.conflictSignals ?? stats.conflictSignals ?? 0,
       avgPartnerLength: stats.avgPartnerLength ?? 0,
+      reelQueries: analysis.reelQueries ?? [],
+      foods: analysis.foods ?? [],
+      activities: analysis.activities ?? [],
     };
     if (chat.likes.length) profile.likes = [...new Set([...profile.likes, ...chat.likes])].slice(0, 12);
     if (chat.dislikes.length) profile.dislikes = [...new Set([...profile.dislikes, ...chat.dislikes])].slice(0, 12);
+    if (chat.foods.length) profile.foods = [...new Set([...profile.foods, ...chat.foods])].slice(0, 12);
+    if (chat.activities.length) profile.activities = [...new Set([...profile.activities, ...chat.activities])].slice(0, 12);
     if (/short/i.test(chat.style.join(" ")) && !pref(prefs, "message_length")) profile.messageLength = "short";
   } catch {
     /* import table may be missing in older DBs */

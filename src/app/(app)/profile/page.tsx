@@ -37,14 +37,14 @@ export default function ProfilePage() {
 
   if (loading) return <p className="text-sm text-muted">Loading profile…</p>;
 
-  const groups = ["about", "favorites", "conflict", "style", "history", "now"] as const;
+  const groups = ["about", "favorites", "send", "conflict", "style", "history", "now"] as const;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="font-display text-4xl text-navy">Relationship profile</h1>
         <p className="mt-2 text-muted">
-          Train US360 without an AI. These fields feed the rule engine, cards, and Reel choices.
+          Train US360 without an AI. These fields feed the rule engine, cards, Reel choices, and the Send button.
         </p>
       </div>
       <Card className="space-y-4">
@@ -63,10 +63,18 @@ export default function ProfilePage() {
           {PROFILE_FIELDS.filter((f) => f.group === group).map((field) => (
             <div key={field.key}>
               <Label>{field.label}</Label>
-              <Textarea
-                value={values[field.key] ?? ""}
-                onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
-              />
+              {group === "send" ? (
+                <Input
+                  value={values[field.key] ?? ""}
+                  onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+                  placeholder={field.key === "partner_instagram" ? "username" : field.key === "partner_whatsapp" ? "923001234567" : "username"}
+                />
+              ) : (
+                <Textarea
+                  value={values[field.key] ?? ""}
+                  onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+                />
+              )}
             </div>
           ))}
         </Card>

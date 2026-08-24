@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { REEL_CATEGORIES } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/states";
+import { CommandBar } from "@/features/assistant/command-bar";
 
 type Reel = {
   id: string;
@@ -17,43 +18,34 @@ type Reel = {
   favorite: boolean;
 };
 
-type Idea = { query: string; search: string; tag: string };
-type Schedule = { id: string; status: string; scheduledAt: string; reelId?: string };
+type Pending = { title: string; at: string; type: string; hint: string; quote: string };
+type Platform = { connected: boolean; serverConfigured: boolean; handle: string | null; canAutoSend: boolean; auto: boolean; fallback: string; label: string };
 
 export default function ReelsPage() {
   const [reels, setReels] = useState<Reel[]>([]);
   const [url, setUrl] = useState("");
-  const [category, setCategory] = useState("ROMANTIC");
+  const [category, setCategory] = useState("CUTE");
   const [notes, setNotes] = useState("");
-  const [connected, setConnected] = useState(false);
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [cadenceBusy, setCadenceBusy] = useState(false);
+  const [pending, setPending] = useState<Pending[]>([]);
+  const [platforms, setPlatforms] = useState<Record<string, Platform>>({});
+  const [showLibrary, setShowLibrary] = useState(false);
 
   async function load() {
-    const [r, i, s, q] = await Promise.all([
+    const [r, p, s] = await Promise.all([
       fetch("/api/reels"),
-      fetch("/api/integrations/instagram"),
-      fetch("/api/reels/schedule"),
-      fetch("/api/reels/ideas"),
+      fetch("/api/calendar/pending"),
+      fetch("/api/integrations/status"),
     ]);
     const reelsJson = await r.json();
-    const ig = await i.json();
-    const sch = await s.json();
-    const ideaJson = await q.json();
+    const pend = await p.json();
+    const status = await s.json();
     setReels(reelsJson.data ?? []);
-    setConnected(Boolean(ig.data?.connected));
-    setSchedules(sch.data ?? []);
-    setIdeas(ideaJson.data ?? []);
+    setPending(pend.data ?? []);
+    setPlatforms(status.data ?? {});
   }
 
   useEffect(() => {
     load();
-    if (new URLSearchParams(window.location.search).get("ig") === "manual") {
-      toast.message("Open Instagram & Share", {
-        description: "Official posting isn’t available. Search, save a Reel, then let US360 space the shares.",
-      });
-    }
   }, []);
 
   async function add(e: React.FormEvent) {
@@ -69,113 +61,131 @@ export default function ReelsPage() {
     load();
   }
 
-  async function cadence() {
-    setCadenceBusy(true);
-    const res = await fetch("/api/reels/cadence", { method: "POST" });
-    const json = await res.json();
-    setCadenceBusy(false);
-    if (!res.ok) return toast.error(json.error ?? "Could not schedule");
-    toast.success(`${json.data.scheduled} Reels spaced ~${json.data.gapHours} hours apart. You’ll be asked to share when each is due.`);
+  async function decidePending(item: Pending, action: "confirm" | "dismiss") {
+    const res = await fetch("/api/calendar/pending", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: item.title, at: item.at, action }),
+    });
+    if (!res.ok) return toast.error("Could not update that date.");
+    toast.success(action === "confirm" ? "Added to calendar." : "Ignored.");
+    load();
+  }
+
+  async function saveAuto(id: string, value: boolean) {
+    const key = { instagram: "autoInstagram", facebook: "autoFacebook", whatsapp: "autoWhatsapp", email: "autoEmail" }[id];
+    if (!key) return;
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ [key]: value }),
+    });
     load();
   }
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <h1 className="font-display text-4xl text-navy">Reels from your chat</h1>
+        <h1 className="font-display text-4xl text-navy">What should I send?</h1>
         <p className="mt-2 text-muted">
-          US360 never logs into Instagram for you or sends a DM in the background. It searches from chat topics, you save the Reel, then a cadence reminds you with a gap between shares.
+          Tell US360 what is happening. It finds a Reel from her likes and the chat when a Reel is actually appropriate —
+          no saved library required. You still approve anything that leaves the app.
         </p>
       </div>
-      <Card className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="font-medium">Connect Instagram</p>
-          <p className="text-sm text-muted">Official OAuth. Direct auto-send only exists for approved professional accounts.</p>
+
+      <Card>
+        <p className="text-xs uppercase tracking-[0.2em] text-rose">Connected accounts</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {["instagram", "facebook", "whatsapp", "email"].map((id) => {
+            const p = platforms[id];
+            return (
+              <div key={id} className="rounded-2xl bg-paper p-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium capitalize">{id}</p>
+                  <Badge tone={p?.connected ? "success" : "default"}>{p?.connected ? "✓ connected" : "not set"}</Badge>
+                </div>
+                <p className="mt-1 text-xs text-muted">
+                  {p?.serverConfigured ? "Server API ready" : "API credentials not configured"}
+                  {p?.handle ? ` · ${p.handle}` : ""}
+                </p>
+                <p className="mt-1 text-xs text-muted">{p?.canAutoSend ? "Can send after confirmation" : p?.fallback}</p>
+                <label className="mt-2 flex items-center gap-2 text-xs">
+                  <input type="checkbox" checked={Boolean(p?.auto)} onChange={(e) => void saveAuto(id, e.target.checked)} />
+                  Auto mode (still official APIs only; disable anytime)
+                </label>
+              </div>
+            );
+          })}
         </div>
-        {connected ? (
-          <Badge tone="success">Connected</Badge>
-        ) : (
-          <Button asChild>
-            <a href="/api/integrations/instagram/start">Connect Instagram</a>
-          </Button>
-        )}
+        <p className="mt-3 text-xs text-muted">
+          Add her usernames on{" "}
+          <Link className="underline" href="/profile">
+            Profile
+          </Link>
+          . Setup for Meta / SMTP:{" "}
+          <Link className="underline" href="/docs/integrations">
+            integration guide
+          </Link>
+          .
+        </p>
       </Card>
 
-      {ideas.length ? (
+      {pending.length ? (
         <Card>
-          <p className="text-xs uppercase tracking-[0.2em] text-rose">Search from WhatsApp</p>
-          <p className="mt-2 text-sm text-muted">Opens Instagram explore for words that showed up in the export.</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {ideas.map((idea) => (
-              <a
-                key={idea.query}
-                href={idea.search}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-full bg-gradient-to-r from-navy to-rose px-4 py-2 text-xs text-cream shadow-soft"
-              >
-                {idea.query}
-              </a>
+          <p className="text-xs uppercase tracking-[0.2em] text-rose">From the WhatsApp export</p>
+          <p className="mt-2 text-sm text-muted">Possible upcoming events. Confirm before they stay on the calendar.</p>
+          <div className="mt-4 space-y-3">
+            {pending.map((item) => (
+              <div key={`${item.title}-${item.at}`} className="rounded-2xl bg-paper p-3">
+                <p className="font-medium">
+                  {item.title} — {new Date(item.at).toLocaleDateString()}
+                </p>
+                <p className="text-xs text-muted">{item.hint}</p>
+                <p className="mt-1 text-sm italic">“{item.quote}”</p>
+                <div className="mt-2 flex gap-2">
+                  <Button size="sm" onClick={() => void decidePending(item, "confirm")}>
+                    Add event
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => void decidePending(item, "dismiss")}>
+                    Ignore
+                  </Button>
+                </div>
+              </div>
             ))}
           </div>
         </Card>
       ) : null}
 
-      <form onSubmit={add} className="card-premium space-y-3 p-5">
-        <div>
-          <Label>Paste the Reel URL you found</Label>
-          <Input value={url} onChange={(e) => setUrl(e.target.value)} required placeholder="https://www.instagram.com/reel/…" />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {REEL_CATEGORIES.map((c) => (
-            <button key={c} type="button" onClick={() => setCategory(c)} className={`rounded-full px-3 py-1 text-xs ${category === c ? "bg-navy text-cream" : "bg-paper"}`}>
-              {c}
-            </button>
-          ))}
-        </div>
-        <Textarea placeholder="Why this fits her" value={notes} onChange={(e) => setNotes(e.target.value)} />
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit">Save Reel</Button>
-          <Button type="button" variant="outline" disabled={cadenceBusy || reels.length === 0} onClick={cadence}>
-            {cadenceBusy ? "Scheduling…" : "Auto cadence with gaps"}
-          </Button>
-        </div>
-      </form>
-      <div className="grid gap-4 md:grid-cols-2">
-        {reels.length === 0 ? (
-          <div className="md:col-span-2">
-            <EmptyState title="No Reels saved" description="Search from the chips above, then paste the URL. Cadence will space them so it doesn’t feel automatic." />
-          </div>
-        ) : (
-          reels.map((r) => (
-            <Card key={r.id}>
-              <Badge>{r.category}</Badge>
-              <p className="mt-3 break-all text-sm">{r.url}</p>
-              {r.notes ? <p className="mt-2 text-sm text-muted">{r.notes}</p> : null}
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button size="sm" asChild>
-                  <a href={r.url} target="_blank" rel="noreferrer">
-                    Open Instagram & Share
-                  </a>
-                </Button>
-              </div>
-            </Card>
-          ))
-        )}
-      </div>
-      {schedules.length ? (
-        <div>
-          <h2 className="font-display text-2xl">Cadence</h2>
-          <div className="mt-3 space-y-2">
-            {schedules.map((s) => (
-              <Card key={s.id} className="flex items-center justify-between">
-                <span className="text-sm">{new Date(s.scheduledAt).toLocaleString()}</span>
-                <Badge tone={s.status === "REQUIRES_ACTION" ? "rose" : "default"}>{s.status.replaceAll("_", " ")}</Badge>
-              </Card>
+      <CommandBar />
+
+      <div>
+        <button type="button" className="text-sm underline" onClick={() => setShowLibrary((v) => !v)}>
+          {showLibrary ? "Hide optional library" : "Optional: save a Reel URL for later"}
+        </button>
+        {showLibrary ? (
+          <form onSubmit={add} className="card-premium mt-4 space-y-3 p-5">
+            <p className="text-sm text-muted">You do not need this. Commands search Instagram from her likes. This is only if you want to keep a URL.</p>
+            <div>
+              <Label>Reel URL</Label>
+              <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.instagram.com/reel/…" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {REEL_CATEGORIES.map((c) => (
+                <button key={c} type="button" onClick={() => setCategory(c)} className={`rounded-full px-3 py-1 text-xs ${category === c ? "bg-navy text-cream" : "bg-paper"}`}>
+                  {c}
+                </button>
+              ))}
+            </div>
+            <Textarea placeholder="Why this fits her" value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <Button type="submit">Save for later</Button>
+            {reels.map((r) => (
+              <p key={r.id} className="break-all text-xs text-muted">
+                {r.category}: {r.url}
+              </p>
             ))}
-          </div>
-        </div>
-      ) : null}
+          </form>
+        ) : null}
+      </div>
     </div>
   );
 }
