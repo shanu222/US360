@@ -66,7 +66,7 @@ export default function SettingsPage() {
     if (q === "connected") toast.success("Gmail connected.");
     if (q === "error") toast.error("Gmail authorization failed. Try Connect Gmail again.");
     if (q === "denied") toast.error("Gmail access was denied.");
-    if (q === "setup") toast.error("Google OAuth is not configured on the server yet. See /docs/email.");
+    if (q === "setup") toast.error("Google OAuth is not configured on the server yet. See /docs/setup and /docs/email.");
   }, []);
 
   async function save(patch: Partial<Settings>) {
@@ -122,8 +122,12 @@ export default function SettingsPage() {
         </ul>
         <p className="mt-2 text-xs text-muted">
           From is always your connected Gmail. US360 will not claim a send unless Gmail accepts the message.{" "}
+          <a className="underline" href="/docs/setup">
+            Full system setup
+          </a>
+          {" · "}
           <a className="underline" href="/docs/email">
-            Google Cloud setup
+            Google Cloud / Gmail
           </a>
         </p>
 

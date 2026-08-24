@@ -1,5 +1,7 @@
 # Email (personal Gmail OAuth)
 
+Full production checklist (Vercel, Postgres, Google, cron): [SETUP.md](./SETUP.md) and `/docs/setup`.
+
 Each US360 user connects **their own Gmail** with Google OAuth. Mail is sent with the **Gmail API** from that account.
 
 US360 never asks for a Gmail password or App Password, never stores Google passwords, and never uses one shared mailbox for all users.

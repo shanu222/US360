@@ -19,6 +19,10 @@ export default function IntegrationsDocsPage() {
           <Link className="underline" href="/docs/email">
             /docs/email
           </Link>
+          . Master checklist:{" "}
+          <Link className="underline" href="/docs/setup">
+            /docs/setup
+          </Link>
           .
         </p>
       </Card>
@@ -56,6 +60,10 @@ export default function IntegrationsDocsPage() {
         {" · "}
         <Link className="underline" href="/settings">
           Settings
+        </Link>
+        {" · "}
+        <Link className="underline" href="/docs/setup">
+          Full system setup
         </Link>
       </p>
     </div>

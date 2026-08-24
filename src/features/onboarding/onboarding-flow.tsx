@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { COMMUNICATION_STYLES, FAVORITE_CATEGORIES } from "@/types";
 import { GenderSelect } from "@/components/gender-select";
+import { SelectOrWrite } from "@/components/select-or-write";
+import { optionsFor, optionsForFavoriteCategory } from "@/engine/profile-options";
 import { oppositeGender, voiceFor, type Gender } from "@/lib/voice";
 
 const STEPS = [
@@ -243,20 +245,24 @@ export function OnboardingFlow({
           {step === 3 && (
             <div className="space-y-4">
               <h2 className="font-display text-3xl">{voice.Their} preferences</h2>
-              <p className="text-sm text-muted">Add what you already know. You can refine this later.</p>
+              <p className="text-sm text-muted">Tap to select, or write your own. You can refine this later.</p>
               {FAVORITE_CATEGORIES.map((cat) => (
                 <div key={cat}>
                   <Label className="capitalize">{cat.replaceAll("_", " ")}</Label>
-                  <Input
-                    placeholder="Comma separated"
+                  <SelectOrWrite
                     value={data.favorites[cat]}
-                    onChange={(e) => setData({ ...data, favorites: { ...data.favorites, [cat]: e.target.value } })}
+                    onChange={(next) => setData({ ...data, favorites: { ...data.favorites, [cat]: next } })}
+                    options={optionsForFavoriteCategory(cat)}
                   />
                 </div>
               ))}
               <div>
                 <Label>Things {voice.they} dislikes</Label>
-                <Textarea value={data.dislikes} onChange={(e) => setData({ ...data, dislikes: e.target.value })} />
+                <SelectOrWrite
+                  value={data.dislikes}
+                  onChange={(next) => setData({ ...data, dislikes: next })}
+                  options={optionsFor("dislikes")}
+                />
               </div>
             </div>
           )}

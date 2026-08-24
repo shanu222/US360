@@ -168,7 +168,7 @@ Cards prefer **generated/CSS backgrounds + HTML typography**. Optional `IMAGE_AP
 
 WhatsApp, Instagram, Facebook, and Reels are **never auto-sent**. Quiet hours, frequency, and category toggles live in Settings. All schedules use the **user timezone**.
 
-See [docs/EMAIL.md](docs/EMAIL.md) and `/docs/email` for the external mail steps.
+See [docs/SETUP.md](docs/SETUP.md) and `/docs/setup` for the full external checklist (Vercel, Postgres, Google, cron). Gmail detail: [docs/EMAIL.md](docs/EMAIL.md) and `/docs/email`. US360 does **not** use Firebase or Resend.
 
 ---
 

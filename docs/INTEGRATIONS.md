@@ -4,6 +4,8 @@ US360 never uses passwords, scraping, or browser bots for Instagram, Facebook, o
 
 **Auto-send is Gmail only.** Each user connects their own Gmail. Instagram, Facebook, WhatsApp, and Reels always stay **open-and-send**. The app will not show **Sent** unless Gmail confirms acceptance.
 
+Master checklist for Vercel, Postgres, Google, cron, and optional APIs: [SETUP.md](./SETUP.md) and `/docs/setup`.
+
 ## Email
 
 See [EMAIL.md](./EMAIL.md) and `/docs/email`.

@@ -105,6 +105,10 @@ export default function EmailDocsPage() {
           Back to Settings
         </Link>
         {" · "}
+        <Link className="underline" href="/docs/setup">
+          Full system setup
+        </Link>
+        {" · "}
         <Link className="underline" href="/docs/integrations">
           Other platforms
         </Link>

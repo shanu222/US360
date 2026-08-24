@@ -31,6 +31,10 @@ export default function WhatsAppDocsPage() {
         <Link className="underline" href="/docs/email">
           Email setup
         </Link>
+        {" · "}
+        <Link className="underline" href="/docs/setup">
+          Full system setup
+        </Link>
       </p>
     </div>
   );
