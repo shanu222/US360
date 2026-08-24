@@ -47,6 +47,7 @@ model User {
   giftSuggestions     GiftSuggestion[]
   pushSubscriptions   PushSubscription[]
   onboarding          OnboardingState?
+  chatImports         ChatImport[]
 
   @@index([email])
 }
@@ -118,18 +119,20 @@ model Relationship {
   cards               Card[]
   reels               Reel[]
   dailyRecommendations DailyRecommendation[]
+  chatImports         ChatImport[]
 
   @@index([userId])
 }
 
 model OnboardingState {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  step        Int      @default(1)
-  completed   Boolean  @default(false)
-  completedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  step              Int       @default(1)
+  completed         Boolean   @default(false)
+  completedAt       DateTime?
+  chatImportStatus  String    @default("PENDING")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -797,4 +800,43 @@ model JobRun {
   @@index([jobName])
   @@index([status])
   @@index([startedAt])
+}
+
+model ChatImport {
+  id             String   @id @default(cuid())
+  userId         String
+  relationshipId String?
+  fileName       String
+  chatFileName   String?
+  messageCount   Int      @default(0)
+  partnerName    String?
+  firstAt        DateTime?
+  lastAt         DateTime?
+  stats          Json
+  analysis       Json
+  createdAt      DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relationship Relationship? @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+  messages     ChatMessage[]
+
+  @@index([userId])
+  @@index([relationshipId])
+  @@index([createdAt])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  importId  String
+  sentAt    DateTime?
+  sender    String
+  isPartner Boolean  @default(false)
+  kind      String   @default("text")
+  text      String   @db.Text
+
+  import ChatImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([importId])
+  @@index([sentAt])
+  @@index([kind])
 }

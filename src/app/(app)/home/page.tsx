@@ -31,7 +31,7 @@ export default async function HomePage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [recommendation, upcoming, morningCard, nightCard, reel] = await Promise.all([
+  const [recommendation, upcoming, morningCard, nightCard, reel, chatImport] = await Promise.all([
     db.dailyRecommendation.findFirst({
       where: { userId: user.id, date: { gte: today } },
       orderBy: { createdAt: "desc" },
@@ -50,6 +50,11 @@ export default async function HomePage() {
       orderBy: { createdAt: "desc" },
     }),
     db.reel.findFirst({ where: { userId: user.id }, orderBy: { createdAt: "desc" } }),
+    db.chatImport.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      select: { partnerName: true, messageCount: true, analysis: true, firstAt: true, lastAt: true },
+    }),
   ]);
 
   const suggestion = recommendation ?? {
@@ -88,6 +93,26 @@ export default async function HomePage() {
           </Button>
         </div>
       </Card>
+
+      {chatImport ? (
+        <ChatBrief
+          partnerName={chatImport.partnerName}
+          messageCount={chatImport.messageCount}
+          analysis={chatImport.analysis}
+        />
+      ) : (
+        <Card>
+          <CardTitle>WhatsApp chat</CardTitle>
+          <CardDescription className="mt-2">
+            Import a chat ZIP to fill Memory with likes, routines, and how you write — no AI reads the export.
+          </CardDescription>
+          <div className="mt-4">
+            <Button asChild variant="outline">
+              <Link href="/import-chat?again=1">Import WhatsApp ZIP</Link>
+            </Button>
+          </div>
+        </Card>
+      )}
 
       <section>
         <h2 className="mb-4 font-display text-2xl">Quick actions</h2>
@@ -140,5 +165,51 @@ function Row({ href, label, ready }: { href: string; label: string; ready?: bool
       <span>{label}</span>
       <Badge tone={ready ? "success" : "default"}>{ready ? "Ready" : "Open"}</Badge>
     </Link>
+  );
+}
+
+function ChatBrief({
+  partnerName,
+  messageCount,
+  analysis,
+}: {
+  partnerName: string | null;
+  messageCount: number;
+  analysis: unknown;
+}) {
+  const a = (analysis ?? {}) as {
+    summary?: string;
+    likes?: string[];
+    topics?: { topic: string; count: number }[];
+    communicationStyle?: string[];
+  };
+  return (
+    <Card>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Badge tone="rose">From WhatsApp</Badge>
+          <CardTitle className="mt-3">
+            {messageCount.toLocaleString()} messages with {partnerName ?? "your partner"}
+          </CardTitle>
+          <CardDescription className="mt-2 max-w-2xl">{a.summary}</CardDescription>
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/insights">See patterns</Link>
+        </Button>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {(a.communicationStyle ?? []).map((s) => (
+          <Badge key={s}>{s}</Badge>
+        ))}
+        {(a.likes ?? []).slice(0, 5).map((s) => (
+          <Badge key={s} tone="rose">
+            {s}
+          </Badge>
+        ))}
+        {(a.topics ?? []).slice(0, 4).map((t) => (
+          <Badge key={t.topic}>{t.topic}</Badge>
+        ))}
+      </div>
+    </Card>
   );
 }

@@ -60,6 +60,19 @@ export default function SettingsPage() {
       <h1 className="font-display text-4xl text-navy">Settings</h1>
 
       <Card>
+        <CardTitle>WhatsApp chat</CardTitle>
+        <p className="mt-2 text-sm text-muted">
+          Upload a WhatsApp export ZIP. US360 reads the whole chat locally on the server — no AI — and fills Memory,
+          likes, dates, and your writing style.
+        </p>
+        <div className="mt-4">
+          <Button asChild variant="outline">
+            <a href="/import-chat?again=1">Import or replace chat</a>
+          </Button>
+        </div>
+      </Card>
+
+      <Card>
         <CardTitle>Automation</CardTitle>
         <div className="mt-4 space-y-3">
           {[

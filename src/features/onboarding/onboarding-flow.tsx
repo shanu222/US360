@@ -61,7 +61,7 @@ export function OnboardingFlow({ defaultTimezone }: { defaultTimezone: string })
       toast.error("Could not save onboarding. Please try again.");
       return;
     }
-    router.push("/home");
+    router.push("/import-chat");
     router.refresh();
   }
 

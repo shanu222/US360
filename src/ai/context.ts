@@ -76,6 +76,21 @@ export async function buildAIContext(userId: string): Promise<AIContext> {
       }))
     : [];
 
+  const chatImport = settings?.aiShareMemories
+    ? await db.chatImport.findFirst({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        select: { analysis: true },
+      })
+    : null;
+  const chatAnalysis = (chatImport?.analysis ?? null) as {
+    summary?: string;
+    likes?: string[];
+    dislikes?: string[];
+    topics?: { topic: string; count: number }[];
+    communicationStyle?: string[];
+  } | null;
+
   return {
     now: now.toISOString(),
     timezone,
@@ -110,5 +125,14 @@ export async function buildAIContext(userId: string): Promise<AIContext> {
     recentReels,
     writingStyle: settings?.aiShareStyle ? user.writingStyle?.samples?.slice(0, 600) : null,
     season: seasonFor(now, timezone),
+    chatInsights: chatAnalysis
+      ? {
+          summary: chatAnalysis.summary ?? "",
+          likes: (chatAnalysis.likes ?? []).slice(0, 10),
+          dislikes: (chatAnalysis.dislikes ?? []).slice(0, 8),
+          topics: (chatAnalysis.topics ?? []).slice(0, 8),
+          style: (chatAnalysis.communicationStyle ?? []).slice(0, 6),
+        }
+      : null,
   };
 }

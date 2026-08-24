@@ -15,6 +15,8 @@ export async function GET() {
         messages: true,
         reels: true,
         situations: true,
+        chatImports: { select: { id: true, fileName: true, partnerName: true, messageCount: true, firstAt: true, lastAt: true, stats: true, analysis: true, createdAt: true } },
+        writingStyle: true,
       },
     });
     const { passwordHash, ...safe } = full ?? {};

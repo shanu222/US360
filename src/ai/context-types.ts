@@ -16,6 +16,13 @@ export interface AIContext {
   recentReels: { category: string; notes?: string | null }[];
   writingStyle?: string | null;
   season: string;
+  chatInsights?: {
+    summary: string;
+    likes: string[];
+    dislikes: string[];
+    topics: { topic: string; count: number }[];
+    style: string[];
+  } | null;
 }
 
 export function contextToPrompt(ctx: AIContext) {
@@ -32,5 +39,6 @@ Upcoming: ${ctx.upcomingDates.map((d) => `${d.title} (${d.type}) ${d.date}`).joi
 Recent situations: ${ctx.recentSituations.map((s) => `[${s.status}] ${s.description}`).join(" | ") || "none"}
 Recent cards: ${ctx.recentCards.map((c) => `${c.category}/${c.theme}: ${c.message}`).join(" | ") || "none"}
 Recent messages: ${ctx.recentMessages.map((m) => m.content).join(" | ") || "none"}
-Writing style samples: ${ctx.writingStyle ?? "none"}`;
+Writing style samples: ${ctx.writingStyle ?? "none"}
+WhatsApp chat (deterministic, not AI-read): ${ctx.chatInsights ? `${ctx.chatInsights.summary} Likes: ${ctx.chatInsights.likes.join(", ") || "none"}. Dislikes: ${ctx.chatInsights.dislikes.join(", ") || "none"}. Topics: ${ctx.chatInsights.topics.map((t) => t.topic).join(", ") || "none"}. Style: ${ctx.chatInsights.style.join(", ") || "none"}` : "not imported"}`;
 }
