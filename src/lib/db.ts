@@ -1,9 +1,10 @@
 import { PrismaClient } from "@prisma/client";
+import { resolveDatabaseUrl } from "@/lib/database-url";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 const datasourceUrl =
-  process.env.DATABASE_URL ||
+  resolveDatabaseUrl() ||
   "postgresql://postgres:postgres@127.0.0.1:5432/postgres?schema=public";
 
 export const db =

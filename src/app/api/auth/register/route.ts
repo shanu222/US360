@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { handleApiError, jsonError, jsonOk } from "@/lib/api";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { hasConfiguredDatabase } from "@/lib/database-url";
 
 const schema = z.object({
   name: z.string().min(1).max(80),
@@ -14,6 +15,13 @@ export async function POST(req: Request) {
   try {
     const limited = rateLimit(`register:${clientIp(req.headers)}`, 8, 60_000);
     if (!limited.success) return jsonError("Please wait a moment before trying again.", 429);
+
+    if (!hasConfiguredDatabase()) {
+      return jsonError(
+        "The database is not connected yet. Add Postgres in Vercel (Storage → Postgres), set AUTH_SECRET, then Redeploy.",
+        503,
+      );
+    }
 
     const body = schema.parse(await req.json());
     const email = body.email.toLowerCase();

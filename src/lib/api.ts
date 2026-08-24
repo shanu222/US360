@@ -22,5 +22,16 @@ export function handleApiError(error: unknown) {
     return jsonError("You do not have access to this resource.", 403);
   }
   console.error(error);
+  const message = error instanceof Error ? error.message : "";
+  if (
+    /Can't reach database|P1001|P1017|does not exist|Environment variable not found: DATABASE_URL|Authentication failed/i.test(
+      message,
+    )
+  ) {
+    return jsonError(
+      "The database is not connected yet. Add Postgres in Vercel (Storage → Postgres), set AUTH_SECRET, then Redeploy.",
+      503,
+    );
+  }
   return jsonError("Something went wrong. Please try again.", 500);
 }

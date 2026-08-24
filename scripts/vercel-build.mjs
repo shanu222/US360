@@ -1,24 +1,30 @@
 import { spawnSync } from "node:child_process";
 
 const placeholderDb = "postgresql://postgres:postgres@127.0.0.1:5432/postgres?schema=public";
-const hasDatabase = Boolean(process.env.DATABASE_URL);
 
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = placeholderDb;
-  console.warn(
-    "DATABASE_URL is not set. Skipping Prisma migrations so this Vercel build can finish. Add a Postgres database in the Vercel dashboard for login and saved data.",
-  );
+  process.env.DATABASE_URL =
+    process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING || "";
 }
 
 if (!process.env.DIRECT_URL) {
-  process.env.DIRECT_URL = process.env.DATABASE_URL;
+  process.env.DIRECT_URL =
+    process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL || "";
+}
+
+const hasDatabase = Boolean(process.env.DATABASE_URL);
+
+if (!hasDatabase) {
+  process.env.DATABASE_URL = placeholderDb;
+  process.env.DIRECT_URL = placeholderDb;
+  console.warn(
+    "No Postgres URL found. Skipping migrations. In Vercel: Storage → Create Database → Postgres, then redeploy.",
+  );
 }
 
 if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
   process.env.AUTH_SECRET = "vercel-build-placeholder-set-AUTH_SECRET-in-project-env";
-  console.warn(
-    "AUTH_SECRET is not set. Using a build placeholder. Set AUTH_SECRET in Vercel env vars before using authentication.",
-  );
+  console.warn("AUTH_SECRET is not set. Add it in Vercel → Settings → Environment Variables.");
 }
 
 function run(command, args) {
@@ -37,7 +43,7 @@ run("npx", ["prisma", "generate"]);
 if (hasDatabase) {
   run("npx", ["prisma", "migrate", "deploy"]);
 } else {
-  console.warn("Skipping `prisma migrate deploy` because DATABASE_URL was not provided.");
+  console.warn("Skipping `prisma migrate deploy` because no database URL was provided.");
 }
 
 run("npx", ["next", "build"]);
