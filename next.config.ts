@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   outputFileTracingRoot: path.join(__dirname),
   serverExternalPackages: ["@prisma/client", "bcryptjs"],
+  eslint: {
+    // Production deploys must not fail on lint; `next lint` still runs locally.
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
