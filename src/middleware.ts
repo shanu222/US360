@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import NextAuth from "next-auth";
+import { authConfig } from "@/lib/auth.config";
+
+const { auth } = NextAuth(authConfig);
 
 const publicPaths = ["/", "/login", "/register", "/manifest.webmanifest", "/sw.js"];
 
-export async function middleware(req: NextRequest) {
+export default auth((req) => {
   const { pathname } = req.nextUrl;
   if (
     pathname.startsWith("/api/auth") ||
@@ -19,11 +21,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = await getToken({
-    req,
-    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
-  });
-  if (!token && (pathname.startsWith("/api/") || !pathname.startsWith("/api"))) {
+  if (!req.auth) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ ok: false, error: "Please sign in to continue." }, { status: 401 });
     }
@@ -34,7 +32,7 @@ export async function middleware(req: NextRequest) {
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],

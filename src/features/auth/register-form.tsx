@@ -29,11 +29,17 @@ export function RegisterForm({ googleEnabled }: { googleEnabled: boolean }) {
       toast.error(json.error ?? "Could not create account");
       return;
     }
-    await signIn("credentials", {
-      email: String(form.get("email")),
+    const sign = await signIn("credentials", {
+      email: String(form.get("email")).trim().toLowerCase(),
       password: String(form.get("password")),
-      callbackUrl: "/onboarding",
+      redirect: false,
     });
+    if (sign?.error) {
+      toast.success("Account created. Please sign in.");
+      window.location.assign("/login");
+      return;
+    }
+    window.location.assign("/onboarding");
   }
 
   return (

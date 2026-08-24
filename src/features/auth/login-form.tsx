@@ -3,13 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 
 export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -17,7 +15,7 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
     setLoading(true);
     const form = new FormData(e.currentTarget);
     const res = await signIn("credentials", {
-      email: String(form.get("email")),
+      email: String(form.get("email")).trim().toLowerCase(),
       password: String(form.get("password")),
       redirect: false,
     });
@@ -26,8 +24,7 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
       toast.error("Those details didn’t match. Please try again.");
       return;
     }
-    router.push("/home");
-    router.refresh();
+    window.location.assign("/home");
   }
 
   return (
