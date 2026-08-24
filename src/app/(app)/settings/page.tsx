@@ -27,14 +27,15 @@ type Settings = {
   quietHoursStart: string;
   quietHoursEnd: string;
   timezone?: string;
-  whatsappNumber?: string | null;
-  whatsappReminders?: boolean;
-  whatsapp?: {
+  accountEmail?: string | null;
+  partnerEmail?: string | null;
+  email?: {
     configured: boolean;
-    hasToken: boolean;
-    hasPhoneNumberId: boolean;
-    hasTemplate: boolean;
-    webhookUrl: string;
+    ready: boolean;
+    hasHost: boolean;
+    hasUser: boolean;
+    hasPassword: boolean;
+    hasFrom: boolean;
     docs: string;
   };
 };
@@ -65,73 +66,77 @@ export default function SettingsPage() {
 
   if (!settings) return <p className="text-sm text-muted">Loading settings…</p>;
 
+  const missingSmtp = [
+    !settings.email?.hasHost && "SMTP_HOST",
+    !settings.email?.hasFrom && "SMTP_FROM",
+    !settings.email?.hasUser && "SMTP_USER",
+    !settings.email?.hasPassword && "SMTP_PASSWORD",
+  ].filter(Boolean);
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <h1 className="font-display text-4xl text-navy">Settings</h1>
 
       <Card>
-        <CardTitle>WhatsApp reminders</CardTitle>
-        {settings.whatsapp?.configured ? (
+        <CardTitle>Email reminders</CardTitle>
+        {settings.email?.configured ? (
           <p className="mt-2 text-sm text-muted">
-            Official Cloud API is configured on the server. Reminders go to your number after you opt in — never through a
-            personal WhatsApp login or browser bot.
+            SMTP is configured. Calendar reminders and prepared notes can go automatically to emails already saved in
+            the system — your account address and her address on Profile.
           </p>
         ) : (
           <p className="mt-2 text-sm text-muted">
-            WhatsApp sending is not active yet. Calendar reminders still work in the app, by email, and by web push. To
-            enable WhatsApp, a Meta Cloud API token, phone number ID, and an approved template must be added on the server.
-            The product will not pretend a WhatsApp message was sent until then.
+            Mail sending is not active yet. Reminders still appear in the app and by web push. Add SMTP on the server
+            so saved addresses can receive automatic reminder emails. WhatsApp, Instagram, and Facebook are never
+            auto-sent.
           </p>
         )}
-        <div className="mt-4 space-y-4">
-          <div>
-            <Label>Your WhatsApp number (E.164, digits with country code)</Label>
-            <Input
-              inputMode="tel"
-              placeholder="923001234567"
-              defaultValue={settings.whatsappNumber ?? ""}
-              onBlur={(e) => save({ whatsappNumber: e.target.value.trim() })}
-            />
-          </div>
-          <Row
-            label="Send calendar reminders on WhatsApp"
-            checked={Boolean(settings.whatsappReminders) && Boolean(settings.whatsapp?.configured)}
-            onChange={(v) => {
-              if (v && !settings.whatsapp?.configured) {
-                toast.error("WhatsApp Cloud API is not configured on the server yet.");
-                return;
-              }
-              save({ whatsappReminders: v });
+        <ul className="mt-3 space-y-1 text-sm">
+          <li>
+            Your account: <span className="font-medium">{settings.accountEmail || "not set"}</span>
+          </li>
+          <li>
+            Her email (Profile): <span className="font-medium">{settings.partnerEmail || "not set — add it on Profile"}</span>
+          </li>
+        </ul>
+        <p className="mt-2 text-xs text-muted">
+          {missingSmtp.length
+            ? `Server still needs: ${missingSmtp.join(", ")}.`
+            : "SMTP looks ready."}{" "}
+          Follow the external setup steps at{" "}
+          <a className="underline" href="/docs/email">
+            /docs/email
+          </a>
+          .
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            disabled={!settings.email?.configured || !settings.accountEmail}
+            onClick={async () => {
+              const res = await fetch("/api/integrations/email", { method: "POST" });
+              const json = await res.json();
+              if (!res.ok) return toast.error(json.error ?? "Could not send a test email.");
+              toast.success(`Test email accepted for ${json.data?.to ?? "your address"}.`);
             }}
-          />
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              disabled={!settings.whatsapp?.configured}
-              onClick={async () => {
-                const res = await fetch("/api/integrations/whatsapp", { method: "POST" });
-                const json = await res.json();
-                if (!res.ok) return toast.error(json.error ?? "Could not send a test message.");
-                toast.success("Test reminder accepted by Meta.");
-              }}
-            >
-              Send test reminder
-            </Button>
-            <Button asChild variant="ghost">
-              <a href="/docs/whatsapp">Setup guide</a>
-            </Button>
-          </div>
-          <p className="text-xs text-muted">
-            WhatsApp reminders also need Notifications and Events enabled. Missing:{" "}
-            {[
-              !settings.whatsapp?.hasToken && "access token",
-              !settings.whatsapp?.hasPhoneNumberId && "phone number ID",
-              !settings.whatsapp?.hasTemplate && "approved template name",
-            ]
-              .filter(Boolean)
-              .join(", ") || "nothing — Cloud API looks ready."}
-          </p>
+          >
+            Send test email
+          </Button>
+          <Button asChild variant="ghost">
+            <a href="/docs/email">Mail setup steps</a>
+          </Button>
+          <Button asChild variant="ghost">
+            <a href="/profile">Add her email</a>
+          </Button>
         </div>
+      </Card>
+
+      <Card>
+        <CardTitle>Instagram, Facebook, WhatsApp</CardTitle>
+        <p className="mt-2 text-sm text-muted">
+          These are never auto-sent — not reminders, and not Reels. US360 can open the official app with a caption
+          ready. You tap send yourself. Chat import still uses a WhatsApp export ZIP, not a live login.
+        </p>
       </Card>
 
       <Card>
@@ -162,7 +167,7 @@ export default function SettingsPage() {
         <div className="mt-4 space-y-3">
           {[
             ["SMART", "Smart Mode — prepares recommendations and cards. You approve sending."],
-            ["ASSISTED", "Assisted Mode — scheduling is allowed; external actions follow supported integrations."],
+            ["ASSISTED", "Assisted Mode — scheduling is allowed; only email reminders can leave the app automatically."],
             ["MANUAL", "Manual Mode — AI only recommends. Nothing is scheduled automatically."],
           ].map(([id, label]) => (
             <button
@@ -180,7 +185,7 @@ export default function SettingsPage() {
         <CardTitle>Notifications</CardTitle>
         <div className="mt-4 space-y-4">
           <Row label="Enable notifications" checked={settings.notificationsEnabled} onChange={(v) => save({ notificationsEnabled: v })} />
-          <Row label="Email" checked={settings.emailNotifications} onChange={(v) => save({ emailNotifications: v })} />
+          <Row label="Email reminders to saved addresses" checked={settings.emailNotifications} onChange={(v) => save({ emailNotifications: v })} />
           <Row label="Web push" checked={settings.pushNotifications} onChange={(v) => save({ pushNotifications: v })} />
           <Row label="Morning" checked={settings.notifyMorning} onChange={(v) => save({ notifyMorning: v })} />
           <Row label="Evening" checked={settings.notifyEvening} onChange={(v) => save({ notifyEvening: v })} />

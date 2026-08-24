@@ -80,15 +80,16 @@ export async function POST(req: Request) {
       done.push("card");
     }
 
-    if (selected.has("reminder_her") && body.reminderPlan) {
+    if (selected.has("reminder_her") && body.reminderPlan && !body.sendNow) {
       await db.outboundSend.create({
         data: {
           userId: user.id,
-          channel: (body.channels?.[0] as string) || "whatsapp",
+          channel: "email",
           status: "scheduled",
           body: body.reminderPlan.herMessage,
+          subject: "A note for you",
           scheduledAt: new Date(body.reminderPlan.herReminderAt),
-          toAddress: prefs.get("partner_whatsapp") || prefs.get("partner_email") || null,
+          toAddress: prefs.get("partner_email") || null,
         },
       });
       done.push("reminder_her");
@@ -96,7 +97,10 @@ export async function POST(req: Request) {
 
     const deliveries: Array<{ channel: string; status: string; sent: boolean; openUrl?: string | null; reason?: string | null }> = [];
     if (body.sendNow && body.channels?.length && (selected.has("message") || selected.has("reel") || selected.has("reminder_her"))) {
-      const text = [body.message, body.reelUrl].filter(Boolean).join("\n");
+      const hasReel = selected.has("reel");
+      const text = hasReel
+        ? [body.message, body.reelUrl].filter(Boolean).join("\n")
+        : body.message || body.reminderPlan?.herMessage || "";
       for (const channel of body.channels as SendChannel[]) {
         const openUrl =
           channel === "whatsapp"
@@ -106,29 +110,26 @@ export async function POST(req: Request) {
               : channel === "facebook"
                 ? body.share?.facebook
                 : body.share?.email;
-        const to =
-          channel === "whatsapp"
-            ? prefs.get("partner_whatsapp")
-            : channel === "email"
-              ? prefs.get("partner_email")
-              : null;
+        const emailTo = channel === "email" ? prefs.get("partner_email") || null : null;
         const result = await deliverOutbound({
           userId: user.id,
           channel,
-          body: text || body.reminderPlan?.herMessage || "",
-          to,
+          body: text,
+          to: emailTo,
           openUrl,
+          purpose: hasReel ? "reel" : selected.has("reminder_her") ? "reminder" : "message",
         });
         await logOutbound({
           userId: user.id,
           channel,
           body: text,
-          to,
+          to: emailTo,
           openUrl,
           result,
         });
         deliveries.push({ channel, ...result });
       }
+      if (selected.has("reminder_her")) done.push("reminder_her");
     }
 
     return jsonOk({ applied: done, deliveries });

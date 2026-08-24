@@ -162,11 +162,12 @@ Cards prefer **generated/CSS backgrounds + HTML typography**. Optional `IMAGE_AP
 ## Notifications
 
 - In-app notifications
-- Email via SMTP when configured
+- **Email reminders** via real SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`) to addresses saved in the system (account email and her Profile email)
 - Web Push via VAPID keys (`npx web-push generate-vapid-keys`)
-- Architecture is ready for future mobile push
 
-Quiet hours, frequency, and category toggles live in Settings. All schedules use the **user timezone**.
+WhatsApp, Instagram, Facebook, and Reels are **never auto-sent**. Quiet hours, frequency, and category toggles live in Settings. All schedules use the **user timezone**.
+
+See [docs/EMAIL.md](docs/EMAIL.md) and `/docs/email` for the external mail steps.
 
 ---
 
@@ -174,21 +175,19 @@ Quiet hours, frequency, and category toggles live in Settings. All schedules use
 
 Official Meta/Instagram OAuth only. US360 never asks for or stores Instagram passwords, never scrapes, and never automates the Instagram UI.
 
-If publishing is not permitted for the connected account, actions fall back to **Open Instagram & Share**.
+Reels and DMs are never auto-sent. Actions fall back to **Open Instagram & Share**.
 
 ---
 
-## WhatsApp reminders (official Cloud API only)
+## WhatsApp
 
 Calendar events are extracted from an uploaded WhatsApp **chat export**, not from a live WhatsApp login:
 
-**Export → parse messages → detect dates & events → calendar → upcoming reminders → optional WhatsApp notification**
+**Export → parse messages → detect dates & events → calendar → upcoming reminders → email / in-app / push**
 
-WhatsApp messages are sent only through the **WhatsApp Business Cloud API** (or an approved provider that uses that API). The app never asks for a personal WhatsApp password and never uses browser bots.
+The app never asks for a personal WhatsApp password and never uses browser bots. Sending on WhatsApp is always **Open WhatsApp**. Automatic reminders go to **email** only.
 
-Until `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, and `WHATSAPP_REMINDER_TEMPLATE` are set, reminders still fire in-app, by email, and by web push. Settings will say WhatsApp is **not configured**. The product will not claim a WhatsApp message was sent.
-
-See [docs/WHATSAPP.md](docs/WHATSAPP.md) and the in-app page `/docs/whatsapp` for Meta Developer setup, approved templates, webhooks, and provider notes.
+See [docs/EMAIL.md](docs/EMAIL.md) for SMTP setup and [docs/WHATSAPP.md](docs/WHATSAPP.md) for chat-import notes.
 
 ---
 

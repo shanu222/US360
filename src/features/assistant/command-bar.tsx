@@ -98,7 +98,7 @@ export function CommandBar({ compact }: { compact?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
-  const [channels, setChannels] = useState<string[]>(["whatsapp"]);
+  const [channels, setChannels] = useState<string[]>(["email"]);
   const [accounts, setAccounts] = useState<Record<string, { connected: boolean; canAutoSend: boolean; fallback: string }>>({});
 
   useEffect(() => {
@@ -386,8 +386,8 @@ export function CommandBar({ compact }: { compact?: boolean }) {
               })}
             </div>
             <p className="mt-3 text-xs text-muted">
-              Instagram and Facebook always need a tap in the app. WhatsApp and email send only after the official API
-              confirms — never a fake “sent”.
+              Only email can send automatically, and only to addresses already saved (your account and her Profile
+              email). Instagram, Facebook, WhatsApp, and Reels are never auto-sent — the app opens so you tap send.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => void apply(false)}>

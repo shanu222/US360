@@ -73,12 +73,11 @@ export default function ReelsPage() {
   }
 
   async function saveAuto(id: string, value: boolean) {
-    const key = { instagram: "autoInstagram", facebook: "autoFacebook", whatsapp: "autoWhatsapp", email: "autoEmail" }[id];
-    if (!key) return;
+    if (id !== "email") return;
     await fetch("/api/settings", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ [key]: value }),
+      body: JSON.stringify({ emailNotifications: value, autoEmail: value }),
     });
     load();
   }
@@ -108,11 +107,19 @@ export default function ReelsPage() {
                   {p?.serverConfigured ? "Server API ready" : "API credentials not configured"}
                   {p?.handle ? ` · ${p.handle}` : ""}
                 </p>
-                <p className="mt-1 text-xs text-muted">{p?.canAutoSend ? "Can send after confirmation" : p?.fallback}</p>
-                <label className="mt-2 flex items-center gap-2 text-xs">
-                  <input type="checkbox" checked={Boolean(p?.auto)} onChange={(e) => void saveAuto(id, e.target.checked)} />
-                  Auto mode (still official APIs only; disable anytime)
-                </label>
+                <p className="mt-1 text-xs text-muted">{p?.canAutoSend ? "Reminders can email saved addresses" : p?.fallback}</p>
+                {id === "email" ? (
+                  <label className="mt-2 flex items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(p?.auto)}
+                      onChange={(e) => void saveAuto(id, e.target.checked)}
+                    />
+                    Auto-send reminder emails to addresses saved in the system
+                  </label>
+                ) : (
+                  <p className="mt-2 text-xs text-muted">Never auto-sent. You open the app and send it yourself.</p>
+                )}
               </div>
             );
           })}
@@ -122,10 +129,11 @@ export default function ReelsPage() {
           <Link className="underline" href="/profile">
             Profile
           </Link>
-          . Setup for Meta / SMTP:{" "}
-          <Link className="underline" href="/docs/integrations">
-            integration guide
+          .           Setup for mail reminders:{" "}
+          <Link className="underline" href="/docs/email">
+            email steps
           </Link>
+          . Instagram, Facebook, and WhatsApp stay open-and-send.
           .
         </p>
       </Card>

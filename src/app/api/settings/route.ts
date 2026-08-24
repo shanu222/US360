@@ -2,7 +2,7 @@ import { z } from "zod";
 import { requireUser } from "@/server/auth";
 import { db } from "@/lib/db";
 import { handleApiError, jsonOk } from "@/lib/api";
-import { whatsappSetupStatus } from "@/integrations/whatsapp";
+import { emailSetupStatus } from "@/lib/email";
 
 export async function GET() {
   try {
@@ -12,7 +12,19 @@ export async function GET() {
       update: {},
       create: { userId: user.id },
     });
-    return jsonOk({ ...settings, timezone: user.timezone, whatsapp: whatsappSetupStatus() });
+    const relationship = await db.relationship.findFirst({
+      where: { userId: user.id },
+      include: { preferences: true },
+      orderBy: { createdAt: "asc" },
+    });
+    const partnerEmail = relationship?.preferences.find((p) => p.key === "partner_email")?.value?.trim() || null;
+    return jsonOk({
+      ...settings,
+      timezone: user.timezone,
+      accountEmail: user.email,
+      partnerEmail,
+      email: emailSetupStatus(),
+    });
   } catch (error) {
     return handleApiError(error);
   }

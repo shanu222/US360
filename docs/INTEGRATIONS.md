@@ -1,44 +1,41 @@
 # Official platform integrations
 
-US360 sends only through official APIs. It never uses passwords, scraping, or browser bots.
+US360 never uses passwords, scraping, or browser bots for Instagram, Facebook, or WhatsApp.
 
-Until credentials exist, identifiers on Profile still let the app **open** Instagram, Facebook, WhatsApp, or email with the caption ready. It will not show **Sent** unless the provider confirms delivery.
+**Auto-send is email only.** Reminders can go to addresses already saved (account email and her Profile email) when SMTP is configured. Instagram, Facebook, WhatsApp, and Reels always stay **open-and-send**. The app will not show **Sent** unless the provider confirms delivery.
+
+## Email
+
+See [EMAIL.md](./EMAIL.md) and `/docs/email`.
+
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`
+- Verified sender
+- Settings: Email reminders + Events
+- Cron: `/api/jobs/run`
 
 ## Instagram
 
-- Meta Developer account
-- Instagram professional/business account where required
-- OAuth: `META_APP_ID`, `META_APP_SECRET`, `META_REDIRECT_URI`
-- Permissions: `instagram_basic` and content publish only if Meta approved them
-- Access tokens; webhooks if you enable posting
+Identifiers on Profile let the app **open Instagram** with a caption ready. Consumer DMs are not sent by third-party apps. Reels are never auto-posted.
 
-Consumer Instagram DMs cannot be sent by third-party apps. Fallback: **Open Instagram**.
+- Meta Developer account
+- OAuth: `META_APP_ID`, `META_APP_SECRET`, `META_REDIRECT_URI`
 
 ## Facebook
-
-- Meta Developer account
-- Page configuration where required
-- OAuth and Page permissions / access tokens
 
 Personal profile messages are not automated. Fallback: **Open Facebook**.
 
 ## WhatsApp
 
-See [WHATSAPP.md](./WHATSAPP.md). Needs Cloud API token, phone number ID, and an **approved template** for business-initiated messages. Otherwise **Open WhatsApp** (`wa.me`).
-
-## Email
-
-- `SMTP_HOST`, `SMTP_FROM`, and provider credentials
-- Verified sender
+Chat **import** still uses an export ZIP. Sending a reminder or Reel through WhatsApp is always **Open WhatsApp** (`wa.me`). See [WHATSAPP.md](./WHATSAPP.md) if you still want Cloud API credentials for other experiments — US360 will not auto-send on WhatsApp.
 
 ## Environment
 
 ```
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=
 META_APP_ID=
 META_APP_SECRET=
-WHATSAPP_TOKEN=
-WHATSAPP_PHONE_NUMBER_ID=
-WHATSAPP_REMINDER_TEMPLATE=
-SMTP_HOST=
-SMTP_FROM=
 ```

@@ -1,9 +1,14 @@
 import { sendEmail, emailConfigured } from "@/lib/email";
-import { sendWhatsAppReminder, whatsappConfigured } from "@/integrations/whatsapp";
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 
 export type SendChannel = "instagram" | "facebook" | "whatsapp" | "email";
+
+const MANUAL: Record<Exclude<SendChannel, "email">, string> = {
+  instagram: "Instagram is never auto-sent. Open Instagram and send it yourself.",
+  facebook: "Facebook is never auto-sent. Open Facebook and send it yourself.",
+  whatsapp: "WhatsApp is never auto-sent. Open WhatsApp and send it yourself.",
+};
 
 export async function deliverOutbound(opts: {
   userId: string;
@@ -12,30 +17,46 @@ export async function deliverOutbound(opts: {
   subject?: string;
   to?: string | null;
   openUrl?: string | null;
+  purpose?: "reminder" | "reel" | "message";
 }) {
-  if (opts.channel === "email") {
-    if (!emailConfigured() || !opts.to) {
-      return { status: "manual" as const, sent: false, openUrl: opts.openUrl, reason: "Email SMTP is not configured, or her address is missing." };
-    }
-    const result = await sendEmail({ to: opts.to, subject: opts.subject || "A note for you", text: opts.body });
-    if (result.sent) return { status: "sent" as const, sent: true, openUrl: null as string | null, reason: null };
-    return { status: "failed" as const, sent: false, openUrl: opts.openUrl, reason: result.reason ?? "Email provider did not accept the message." };
+  if (opts.channel !== "email") {
+    return {
+      status: "manual" as const,
+      sent: false,
+      openUrl: opts.openUrl,
+      reason: MANUAL[opts.channel],
+    };
   }
 
-  if (opts.channel === "whatsapp") {
-    if (!whatsappConfigured() || !opts.to) {
-      return { status: "manual" as const, sent: false, openUrl: opts.openUrl, reason: "WhatsApp Cloud API is not configured, or her number is missing." };
-    }
-    const sent = await sendWhatsAppReminder({ to: opts.to, title: (opts.subject || "Reminder").slice(0, 60), when: "now" });
-    if (sent.ok) return { status: "sent" as const, sent: true, openUrl: null as string | null, reason: null };
-    return { status: "manual" as const, sent: false, openUrl: opts.openUrl, reason: "Meta did not send. Opening WhatsApp instead." };
+  if (opts.purpose === "reel") {
+    return {
+      status: "manual" as const,
+      sent: false,
+      openUrl: opts.openUrl,
+      reason: "Reels are never auto-sent. Open the linked app and share it yourself.",
+    };
   }
 
+  if (!emailConfigured() || !opts.to) {
+    return {
+      status: "manual" as const,
+      sent: false,
+      openUrl: opts.openUrl,
+      reason: "Email SMTP is not configured, or no saved address was found.",
+    };
+  }
+
+  const result = await sendEmail({
+    to: opts.to,
+    subject: opts.subject || "A note for you",
+    text: opts.body,
+  });
+  if (result.sent) return { status: "sent" as const, sent: true, openUrl: null as string | null, reason: null };
   return {
-    status: "manual" as const,
+    status: "failed" as const,
     sent: false,
     openUrl: opts.openUrl,
-    reason: "Manual action required — official APIs cannot DM this platform from US360.",
+    reason: result.reason ?? "The mail server did not accept the message.",
   };
 }
 

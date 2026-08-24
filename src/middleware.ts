@@ -4,7 +4,7 @@ import { authConfig } from "@/lib/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-const publicPaths = ["/", "/login", "/register", "/docs/whatsapp", "/docs/integrations", "/manifest.webmanifest", "/sw.js"];
+const publicPaths = ["/", "/login", "/register", "/docs/whatsapp", "/docs/integrations", "/docs/email", "/manifest.webmanifest", "/sw.js"];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;

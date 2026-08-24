@@ -9,7 +9,6 @@ import { fingerprint } from "@/lib/crypto";
 import { sendPush } from "@/lib/push";
 import { sendEmail } from "@/lib/email";
 import { localDateKey, localHour } from "@/lib/utils";
-import { sendWhatsAppReminder, whatsappConfigured } from "@/integrations/whatsapp";
 import { deliverOutbound } from "@/integrations/deliver";
 
 function inQuietHours(settings: { quietHoursStart: string; quietHoursEnd: string }, hour: number) {
@@ -53,13 +52,7 @@ async function markJob(jobName: string, key: string, fn: () => Promise<unknown>)
   }
 }
 
-async function notify(
-  userId: string,
-  type: Parameters<typeof db.notification.create>[0]["data"]["type"],
-  title: string,
-  body: string,
-  whatsapp?: { title: string; when: string },
-) {
+async function notify(userId: string, type: Parameters<typeof db.notification.create>[0]["data"]["type"], title: string, body: string) {
   const user = await db.user.findUnique({
     where: { id: userId },
     include: { settings: true },
@@ -75,20 +68,6 @@ async function notify(
   }
   if (user.settings.emailNotifications && user.email) {
     await sendEmail({ to: user.email, subject: title, text: body });
-  }
-  if (
-    whatsapp &&
-    type === "EVENT_REMINDER" &&
-    user.settings.whatsappReminders &&
-    user.settings.whatsappNumber &&
-    whatsappConfigured()
-  ) {
-    await sendWhatsAppReminder({
-      to: user.settings.whatsappNumber,
-      title: whatsapp.title,
-      when: whatsapp.when,
-      body,
-    });
   }
 }
 
@@ -242,13 +221,12 @@ export async function sendEventReminders(now = new Date()) {
       const when = diff === 0 ? "today" : diff === 1 ? "tomorrow" : `in ${diff} days`;
       const partner = event.relationship?.partnerName;
       const subject = partner ? `${partner}'s ${event.title}` : event.title;
-      await notify(
-        event.userId,
-        "EVENT_REMINDER",
-        `${event.title} is ${when}`,
-        `Reminder ❤️ ${subject} is ${when}. You may want to wish her good luck or prepare a supportive message.`,
-        { title: event.title.slice(0, 60), when },
-      );
+        await notify(
+          event.userId,
+          "EVENT_REMINDER",
+          `${event.title} is ${when}`,
+          `Reminder ❤️ ${subject} is ${when}. You may want to wish her good luck or prepare a supportive message.`,
+        );
       await db.eventReminder.upsert({
         where: { eventId_daysBefore: { eventId: event.id, daysBefore: diff } },
         update: { sentAt: new Date() },
@@ -343,13 +321,33 @@ export async function processOutboundSends(now = new Date()) {
   }
   for (const item of due) {
     await markJob("outbound-send", `outbound:${item.id}`, async () => {
+      if (item.channel !== "email") {
+        await db.outboundSend.update({
+          where: { id: item.id },
+          data: {
+            status: "manual",
+            error: "WhatsApp, Instagram, and Facebook are never auto-sent. Open the linked app to send it yourself.",
+          },
+        });
+        await notify(
+          item.userId,
+          "EVENT_REMINDER",
+          "Reminder ready — send it yourself",
+          item.openUrl
+            ? `Open the app and send: ${item.openUrl}`
+            : "A reminder is ready. WhatsApp, Instagram, and Facebook are never auto-sent.",
+        );
+        return { sent: false, status: "manual" };
+      }
+
       const result = await deliverOutbound({
         userId: item.userId,
-        channel: item.channel as "instagram" | "facebook" | "whatsapp" | "email",
+        channel: "email",
         body: item.body,
         subject: item.subject ?? undefined,
         to: item.toAddress,
         openUrl: item.openUrl,
+        purpose: "reminder",
       });
       await db.outboundSend.update({
         where: { id: item.id },
@@ -361,13 +359,13 @@ export async function processOutboundSends(now = new Date()) {
         },
       });
       if (result.sent) {
-        await notify(item.userId, "EVENT_REMINDER", "Reminder sent", item.body.slice(0, 140));
+        await notify(item.userId, "EVENT_REMINDER", "Reminder emailed", item.body.slice(0, 140));
       } else {
         await notify(
           item.userId,
           "EVENT_REMINDER",
-          "Reminder ready — manual send",
-          result.reason || "Open the linked app to send it yourself.",
+          "Reminder ready — email did not send",
+          result.reason || "Check SMTP settings and the saved email address.",
         );
       }
       return result;
