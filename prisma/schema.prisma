@@ -1,0 +1,800 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  passwordHash  String?
+  image         String?
+  timezone      String    @default("UTC")
+  language      String    @default("en")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts            Account[]
+  sessions            Session[]
+  relationships       Relationship[]
+  settings            UserSettings?
+  writingStyle        WritingStyle?
+  situations          Situation[]
+  messages            Message[]
+  messageTemplates    MessageTemplate[]
+  cards               Card[]
+  reels               Reel[]
+  reelSchedules       ReelSchedule[]
+  calendarEvents      CalendarEvent[]
+  notifications       Notification[]
+  insights            Insight[]
+  dailyRecommendations DailyRecommendation[]
+  integrations        IntegrationAccount[]
+  aiUsageLogs         AIUsageLog[]
+  analyticsEvents     AnalyticsEvent[]
+  weeklyFocuses       WeeklyFocus[]
+  giftSuggestions     GiftSuggestion[]
+  pushSubscriptions   PushSubscription[]
+  onboarding          OnboardingState?
+
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Relationship profile
+// ---------------------------------------------------------------------------
+
+model Relationship {
+  id                  String    @id @default(cuid())
+  userId              String
+  partnerName         String
+  partnerNickname     String?
+  startDate           DateTime?
+  communicationStyle  String?
+  preferredLanguage   String    @default("en")
+  timezone            String    @default("UTC")
+  notes               String?   @db.Text
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memories            RelationshipMemory[]
+  preferences         Preference[]
+  favorites           Favorite[]
+  dislikes            Dislike[]
+  importantDates      ImportantDate[]
+  calendarEvents      CalendarEvent[]
+  situations          Situation[]
+  messages            Message[]
+  cards               Card[]
+  reels               Reel[]
+  dailyRecommendations DailyRecommendation[]
+
+  @@index([userId])
+}
+
+model OnboardingState {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  step        Int      @default(1)
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Memory system
+// ---------------------------------------------------------------------------
+
+enum MemoryCategory {
+  FAVORITES
+  LIKES
+  DISLIKES
+  IMPORTANT
+  MEMORIES
+  PROMISES
+  GOALS
+  PREFERENCES
+  GENERAL
+}
+
+enum Importance {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model RelationshipMemory {
+  id             String         @id @default(cuid())
+  relationshipId String
+  title          String
+  content        String         @db.Text
+  category       MemoryCategory @default(GENERAL)
+  importance     Importance     @default(MEDIUM)
+  reminderAt     DateTime?
+  source         String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  relationship Relationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@index([relationshipId])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model Preference {
+  id             String   @id @default(cuid())
+  relationshipId String
+  key            String
+  value          String   @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  relationship Relationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@unique([relationshipId, key])
+  @@index([relationshipId])
+}
+
+model Favorite {
+  id             String   @id @default(cuid())
+  relationshipId String
+  category       String
+  value          String
+  createdAt      DateTime @default(now())
+
+  relationship Relationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@index([relationshipId])
+  @@index([category])
+}
+
+model Dislike {
+  id             String   @id @default(cuid())
+  relationshipId String
+  category       String
+  value          String
+  createdAt      DateTime @default(now())
+
+  relationship Relationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@index([relationshipId])
+}
+
+model ImportantDate {
+  id             String   @id @default(cuid())
+  relationshipId String
+  title          String
+  date           DateTime
+  type           String
+  recurring      Boolean  @default(true)
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  relationship Relationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@index([relationshipId])
+  @@index([date])
+  @@index([type])
+}
+
+// ---------------------------------------------------------------------------
+// Calendar
+// ---------------------------------------------------------------------------
+
+enum CalendarEventType {
+  BIRTHDAY
+  ANNIVERSARY
+  EVENT
+  EXAM
+  WORK
+  FAMILY
+  PERSONAL
+  CUSTOM
+}
+
+model CalendarEvent {
+  id             String            @id @default(cuid())
+  userId         String
+  relationshipId String?
+  title          String
+  type           CalendarEventType @default(CUSTOM)
+  startAt        DateTime
+  endAt          DateTime?
+  allDay         Boolean           @default(true)
+  recurring      String?
+  timezone       String            @default("UTC")
+  notes          String?           @db.Text
+  reminderDays   Int[]             @default([7, 3, 1, 0])
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relationship Relationship? @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+  reminders    EventReminder[]
+
+  @@index([userId])
+  @@index([relationshipId])
+  @@index([startAt])
+  @@index([type])
+}
+
+model EventReminder {
+  id        String    @id @default(cuid())
+  eventId   String
+  daysBefore Int
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  event CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, daysBefore])
+  @@index([eventId])
+}
+
+// ---------------------------------------------------------------------------
+// Situations & AI analysis
+// ---------------------------------------------------------------------------
+
+enum SituationStatus {
+  OPEN
+  RESOLVED
+  UNRESOLVED
+  ARCHIVED
+}
+
+enum RecommendationType {
+  APOLOGIZE
+  TALK_CALMLY
+  GIVE_SPACE
+  CLARIFY
+  APPRECIATE
+  DO_SOMETHING_THOUGHTFUL
+  WAIT_BEFORE_RESPONDING
+  TALK_IN_PERSON
+  NO_ACTION_NEEDED
+  SEND
+  WAIT
+  ASK_USER
+  SUGGEST_GESTURE
+  SUGGEST_REEL
+  SUGGEST_MESSAGE
+  SUGGEST_CARD
+}
+
+model Situation {
+  id             String          @id @default(cuid())
+  userId         String
+  relationshipId String?
+  description    String          @db.Text
+  howUserFeels   String?
+  whatUserWants  String?
+  status         SituationStatus @default(OPEN)
+  category       String?
+  afterArgument  Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relationship Relationship?      @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+  analysis     SituationAnalysis?
+
+  @@index([userId])
+  @@index([relationshipId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SituationAnalysis {
+  id                String             @id @default(cuid())
+  situationId       String             @unique
+  recommendation    RecommendationType
+  confidence        String
+  summary           String             @db.Text
+  reasoningSummary  String             @db.Text
+  avoid             String[]
+  nextStep          String             @db.Text
+  suggestedMessage  String?            @db.Text
+  gesture           String?            @db.Text
+  needsSpace        Boolean            @default(false)
+  rawJson           Json?
+  createdAt         DateTime           @default(now())
+
+  situation Situation @relation(fields: [situationId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Messages
+// ---------------------------------------------------------------------------
+
+enum MessageCategory {
+  ROMANTIC
+  APOLOGY
+  APPRECIATION
+  FUNNY
+  GOOD_MORNING
+  GOOD_NIGHT
+  CONGRATULATIONS
+  ENCOURAGEMENT
+  BIRTHDAY
+  ANNIVERSARY
+  THINKING_OF_YOU
+  MISS_YOU
+  CUSTOM
+}
+
+model Message {
+  id             String          @id @default(cuid())
+  userId         String
+  relationshipId String?
+  category       MessageCategory @default(CUSTOM)
+  tone           String?
+  length         String?
+  content        String          @db.Text
+  source         String          @default("studio")
+  approved       Boolean         @default(false)
+  sentAt         DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relationship Relationship? @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([relationshipId])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model MessageTemplate {
+  id        String          @id @default(cuid())
+  userId    String
+  name      String
+  content   String          @db.Text
+  category  MessageCategory @default(CUSTOM)
+  createdAt DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model WritingStyle {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  samples   String   @db.Text
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Cards
+// ---------------------------------------------------------------------------
+
+enum CardCategory {
+  GOOD_MORNING
+  GOOD_NIGHT
+  ROMANTIC
+  APPRECIATION
+  SORRY
+  BIRTHDAY
+  ANNIVERSARY
+  CONGRATULATIONS
+  MOTIVATION
+  THINKING_OF_YOU
+  MISS_YOU
+  CUSTOM
+}
+
+enum CardStatus {
+  DRAFT
+  READY
+  SCHEDULED
+  SHARED
+  SKIPPED
+}
+
+model Card {
+  id             String       @id @default(cuid())
+  userId         String
+  relationshipId String?
+  category       CardCategory
+  theme          String
+  color          String?
+  style          String?
+  message        String       @db.Text
+  imageUrl       String?
+  html           String?      @db.Text
+  photoUrl       String?
+  occasion       String?
+  status         CardStatus   @default(DRAFT)
+  scheduledAt    DateTime?
+  sharedAt       DateTime?
+  fingerprint    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relationship Relationship? @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([relationshipId])
+  @@index([category])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([fingerprint])
+}
+
+model CardTemplate {
+  id           String       @id @default(cuid())
+  name         String
+  category     CardCategory
+  theme        String
+  htmlTemplate String       @db.Text
+  previewColor String?
+  createdAt    DateTime     @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Reels
+// ---------------------------------------------------------------------------
+
+enum ReelCategory {
+  ROMANTIC
+  FUNNY
+  CUTE
+  APPRECIATION
+  SORRY
+  MOTIVATION
+  CELEBRATION
+  MEMORY
+}
+
+enum ScheduleStatus {
+  SCHEDULED
+  SENT
+  SKIPPED
+  FAILED
+  REQUIRES_ACTION
+}
+
+model Reel {
+  id             String       @id @default(cuid())
+  userId         String
+  relationshipId String?
+  url            String
+  category       ReelCategory
+  notes          String?      @db.Text
+  favorite       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relationship Relationship?  @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+  schedules    ReelSchedule[]
+
+  @@index([userId])
+  @@index([relationshipId])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model ReelSchedule {
+  id             String         @id @default(cuid())
+  userId         String
+  reelId         String
+  scheduledAt    DateTime
+  timezone       String         @default("UTC")
+  status         ScheduleStatus @default(SCHEDULED)
+  notes          String?        @db.Text
+  actionHint     String?
+  sentAt         DateTime?
+  idempotencyKey String         @unique
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([reelId])
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+enum NotificationType {
+  MORNING_CARD
+  NIGHT_CARD
+  EVENING_REMINDER
+  EVENT_REMINDER
+  REEL_READY
+  UNRESOLVED_SITUATION
+  WEEKLY_FOCUS
+  SYSTEM
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  body        String           @db.Text
+  read        Boolean          @default(false)
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  payload     Json?
+  createdAt   DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([scheduledAt])
+  @@index([read])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Insights & daily recommendations
+// ---------------------------------------------------------------------------
+
+model Insight {
+  id        String   @id @default(cuid())
+  userId    String
+  period    String
+  data      Json
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([period])
+}
+
+enum DailyAction {
+  SEND
+  WAIT
+  NO_ACTION
+  ASK_USER
+  SUGGEST_GESTURE
+  SUGGEST_REEL
+  SUGGEST_MESSAGE
+  SUGGEST_CARD
+}
+
+model DailyRecommendation {
+  id             String      @id @default(cuid())
+  userId         String
+  relationshipId String?
+  date           DateTime    @db.Date
+  slot           String
+  action         DailyAction
+  title          String
+  body           String      @db.Text
+  payload        Json?
+  status         String      @default("ready")
+  fingerprint    String
+  createdAt      DateTime    @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relationship Relationship? @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, date, slot])
+  @@index([userId])
+  @@index([relationshipId])
+  @@index([date])
+  @@index([fingerprint])
+}
+
+model WeeklyFocus {
+  id          String    @id @default(cuid())
+  userId      String
+  weekStart   DateTime  @db.Date
+  title       String
+  body        String    @db.Text
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+  @@index([userId])
+}
+
+model GiftSuggestion {
+  id        String   @id @default(cuid())
+  userId    String
+  occasion  String
+  budget    String
+  ideas     Json
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Integrations, settings, AI usage
+// ---------------------------------------------------------------------------
+
+model IntegrationAccount {
+  id           String    @id @default(cuid())
+  userId       String
+  provider     String
+  accessToken  String?   @db.Text
+  refreshToken String?   @db.Text
+  expiresAt    DateTime?
+  scopes       String[]
+  metadata     Json?
+  status       String    @default("connected")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@index([provider])
+}
+
+enum AutomationMode {
+  SMART
+  ASSISTED
+  MANUAL
+}
+
+model UserSettings {
+  id                    String         @id @default(cuid())
+  userId                String         @unique
+  automationMode        AutomationMode @default(ASSISTED)
+  morningTime           String         @default("08:00")
+  afternoonTime         String         @default("14:00")
+  eveningTime           String         @default("19:00")
+  nightTime             String         @default("22:00")
+  quietHoursStart       String         @default("23:00")
+  quietHoursEnd         String         @default("07:00")
+  notificationsEnabled  Boolean        @default(true)
+  emailNotifications    Boolean        @default(true)
+  pushNotifications     Boolean        @default(true)
+  notifyMorning         Boolean        @default(true)
+  notifyAfternoon       Boolean        @default(false)
+  notifyEvening         Boolean        @default(true)
+  notifyNight           Boolean        @default(true)
+  notifyEvents          Boolean        @default(true)
+  maxReelsPerDay        Int            @default(1)
+  preferredReelTimes    String[]       @default(["19:00"])
+  skipReelDays          String[]       @default([])
+  allowedReelCategories String[]       @default(["ROMANTIC", "FUNNY", "CUTE", "APPRECIATION", "SORRY", "MOTIVATION", "CELEBRATION", "MEMORY"])
+  aiShareMemories       Boolean        @default(true)
+  aiShareCalendar       Boolean        @default(true)
+  aiShareSituations     Boolean        @default(true)
+  aiShareStyle          Boolean        @default(true)
+  dailyAiLimit          Int            @default(40)
+  cardRepeatDays        Int            @default(14)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AIUsageLog {
+  id        String   @id @default(cuid())
+  userId    String
+  feature   String
+  model     String
+  tokensIn  Int      @default(0)
+  tokensOut Int      @default(0)
+  cached    Boolean  @default(false)
+  success   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([feature])
+  @@index([createdAt])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  name      String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([name])
+  @@index([createdAt])
+}
+
+model JobRun {
+  id             String    @id @default(cuid())
+  jobName        String
+  idempotencyKey String    @unique
+  status         String
+  startedAt      DateTime  @default(now())
+  finishedAt     DateTime?
+  error          String?   @db.Text
+  metadata       Json?
+
+  @@index([jobName])
+  @@index([status])
+  @@index([startedAt])
+}

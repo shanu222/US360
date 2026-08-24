@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Cormorant Garamond", serif;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+
+  --color-navy: #1c2430;
+  --color-navy-soft: #2a3342;
+  --color-ink: #2c2420;
+  --color-muted: #7a7068;
+  --color-cream: #fbf7f2;
+  --color-paper: #f4ece4;
+  --color-blush: #c4a4a0;
+  --color-rose: #a87276;
+  --color-gold: #c4a484;
+  --color-line: #eadfd6;
+  --color-success: #5d7a66;
+  --color-warning: #b7814f;
+  --color-danger: #9a4f4f;
+
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
+  --shadow-soft: 0 18px 50px -24px rgba(44, 36, 32, 0.35);
+  --shadow-card: 0 10px 30px -18px rgba(28, 36, 48, 0.28);
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #ead4cf;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.bg-mesh {
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(196, 164, 160, 0.28), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(196, 164, 132, 0.18), transparent 50%),
+    var(--color-cream);
+}
+
+.glass {
+  background: rgba(255, 252, 248, 0.72);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.card-premium {
+  background: #fffdfb;
+  border: 1px solid var(--color-line);
+  box-shadow: var(--shadow-card);
+  border-radius: 1.5rem;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid #a87276;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

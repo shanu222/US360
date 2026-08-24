@@ -1,0 +1,26 @@
+import { NextResponse } from "next/server";
+import { ZodError } from "zod";
+
+export function jsonOk<T>(data: T, init?: ResponseInit) {
+  return NextResponse.json({ ok: true, data }, init);
+}
+
+export function jsonError(message: string, status = 400, extras?: Record<string, unknown>) {
+  return NextResponse.json({ ok: false, error: message, ...extras }, { status });
+}
+
+export function handleApiError(error: unknown) {
+  if (error instanceof ZodError) {
+    return jsonError("Invalid request", 422, {
+      issues: error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+    });
+  }
+  if (error instanceof Error && error.message === "UNAUTHORIZED") {
+    return jsonError("Please sign in to continue.", 401);
+  }
+  if (error instanceof Error && error.message === "FORBIDDEN") {
+    return jsonError("You do not have access to this resource.", 403);
+  }
+  console.error(error);
+  return jsonError("Something went wrong. Please try again.", 500);
+}
