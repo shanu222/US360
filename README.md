@@ -135,7 +135,7 @@ Set `NEXT_PUBLIC_APP_URL` and `AUTH_URL` to your HTTPS origin. Use a managed Pos
 
 Optional: `AI_API_KEY`, Google OAuth, SMTP, VAPID, Meta/Instagram.
 
-4. Deploy. The `vercel-build` script generates the Prisma client, runs `prisma migrate deploy`, then builds Next.js.
+4. Deploy. The project uses **Node.js 24.x**. The `vercel-build` script generates the Prisma client, runs `prisma migrate deploy`, then builds Next.js.
 5. After the first deploy, set `AUTH_URL` / `NEXT_PUBLIC_APP_URL` to the real production domain if it changed, and redeploy.
 
 Vercel Cron calls `/api/jobs/run` once per day (Hobby-compatible). On Pro you can run it more often. Vercel sends `Authorization: Bearer $CRON_SECRET`.
