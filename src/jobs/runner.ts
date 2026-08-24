@@ -8,6 +8,7 @@ import { composeChatCard } from "@/ai/local-replies";
 import { fingerprint } from "@/lib/crypto";
 import { sendPush } from "@/lib/push";
 import { sendEmail } from "@/lib/email";
+import { gmailPublicError, gmailStatus } from "@/integrations/gmail";
 import { localDateKey, localHour } from "@/lib/utils";
 import { deliverOutbound } from "@/integrations/deliver";
 import { voiceFor } from "@/lib/voice";
@@ -53,7 +54,13 @@ async function markJob(jobName: string, key: string, fn: () => Promise<unknown>)
   }
 }
 
-async function notify(userId: string, type: Parameters<typeof db.notification.create>[0]["data"]["type"], title: string, body: string) {
+async function notify(
+  userId: string,
+  type: Parameters<typeof db.notification.create>[0]["data"]["type"],
+  title: string,
+  body: string,
+  emailKind?: "event" | "calendar" | "important" | "relationship" | "scheduled",
+) {
   const user = await db.user.findUnique({
     where: { id: userId },
     include: { settings: true },
@@ -67,8 +74,40 @@ async function notify(userId: string, type: Parameters<typeof db.notification.cr
   if (user.settings.pushNotifications) {
     await sendPush(userId, { title, body, url: "/home" });
   }
-  if (user.settings.emailNotifications && user.email) {
-    await sendEmail({ to: user.email, subject: title, text: body });
+  const s = user.settings;
+  const allowEmail =
+    s.emailNotifications &&
+    (emailKind === "important"
+      ? s.emailImportantDates !== false
+      : emailKind === "calendar"
+        ? s.emailCalendarReminders !== false
+        : emailKind === "relationship"
+          ? s.emailRelationshipReminders !== false
+          : emailKind === "scheduled"
+            ? s.emailScheduledMessages !== false
+            : type === "EVENT_REMINDER"
+              ? s.emailEventReminders !== false
+              : type === "MORNING_CARD" || type === "NIGHT_CARD" || type === "EVENING_REMINDER"
+                ? s.emailRelationshipReminders !== false
+                : true);
+  if (allowEmail && user.email) {
+    const gmail = await gmailStatus(userId);
+    if (gmail.expired) {
+      await db.notification.create({
+        data: {
+          userId,
+          type,
+          title: "Gmail connection expired",
+          body: "Reconnect Gmail in Settings so reminders can be emailed from your account.",
+          sentAt: new Date(),
+        },
+      });
+    } else {
+      const mailed = await sendEmail({ userId, to: gmail.email || user.email, subject: title, text: body });
+      if (!mailed.sent && mailed.reason && mailed.reason !== "gmail_not_connected") {
+        console.info("[email]", gmailPublicError(mailed.reason));
+      }
+    }
   }
 }
 
@@ -183,6 +222,7 @@ export async function prepareDailyContent(now = new Date()) {
           slot.name === "morning" ? "MORNING_CARD" : slot.name === "night" ? "NIGHT_CARD" : "EVENING_REMINDER",
           decision.title,
           decision.body,
+          "relationship",
         );
         return { ok: true };
       });
@@ -211,6 +251,7 @@ export async function sendEventReminders(now = new Date()) {
           "EVENT_REMINDER",
           `Ask how ${event.title} went`,
           "The day after an important event is a good time for a short, pressure-free check-in.",
+          event.type === "BIRTHDAY" || event.type === "ANNIVERSARY" ? "important" : "event",
         );
         return { ok: true };
       });
@@ -228,6 +269,7 @@ export async function sendEventReminders(now = new Date()) {
           "EVENT_REMINDER",
           `${event.title} is ${when}`,
           `Reminder ❤️ ${subject} is ${when}. You may want to wish ${them} good luck or prepare a supportive message.`,
+          event.type === "BIRTHDAY" || event.type === "ANNIVERSARY" ? "important" : "event",
         );
       await db.eventReminder.upsert({
         where: { eventId_daysBefore: { eventId: event.id, daysBefore: diff } },
@@ -312,6 +354,7 @@ export async function processOutboundSends(now = new Date()) {
     subject: string | null;
     toAddress: string | null;
     openUrl: string | null;
+    metadata: Prisma.JsonValue | null;
   }> = [];
   try {
     due = await db.outboundSend.findMany({
@@ -342,6 +385,32 @@ export async function processOutboundSends(now = new Date()) {
         return { sent: false, status: "manual" };
       }
 
+      const settings = await db.userSettings.findUnique({ where: { userId: item.userId } });
+      const audience = (item.metadata as { audience?: "user" | "partner" } | null)?.audience;
+      if (audience === "partner" && !settings?.autoPartnerEmail) {
+        await db.outboundSend.update({
+          where: { id: item.id },
+          data: {
+            status: "held",
+            error: "Automatic partner emails are off. Enable them in Settings or send this note yourself.",
+          },
+        });
+        await notify(
+          item.userId,
+          "EVENT_REMINDER",
+          "Partner email held",
+          "A scheduled note for your partner is waiting. Turn on Automatic partner emails in Settings, or send it yourself.",
+        );
+        return { sent: false, status: "held" };
+      }
+      if (settings && settings.emailScheduledMessages === false) {
+        await db.outboundSend.update({
+          where: { id: item.id },
+          data: { status: "held", error: "Scheduled email messages are off in Settings." },
+        });
+        return { sent: false, status: "held" };
+      }
+
       const result = await deliverOutbound({
         userId: item.userId,
         channel: "email",
@@ -350,6 +419,7 @@ export async function processOutboundSends(now = new Date()) {
         to: item.toAddress,
         openUrl: item.openUrl,
         purpose: "reminder",
+        audience,
       });
       await db.outboundSend.update({
         where: { id: item.id },
@@ -361,13 +431,13 @@ export async function processOutboundSends(now = new Date()) {
         },
       });
       if (result.sent) {
-        await notify(item.userId, "EVENT_REMINDER", "Reminder emailed", item.body.slice(0, 140));
+        await notify(item.userId, "EVENT_REMINDER", "Reminder emailed", item.body.slice(0, 140), "scheduled");
       } else {
         await notify(
           item.userId,
           "EVENT_REMINDER",
           "Reminder ready — email did not send",
-          result.reason || "Check SMTP settings and the saved email address.",
+          result.reason || "Connect or reconnect Gmail in Settings. WhatsApp, Instagram, and Facebook are never auto-sent.",
         );
       }
       return result;

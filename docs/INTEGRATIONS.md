@@ -2,15 +2,15 @@
 
 US360 never uses passwords, scraping, or browser bots for Instagram, Facebook, or WhatsApp.
 
-**Auto-send is email only.** Reminders can go to addresses already saved (account email and her Profile email) when SMTP is configured. Instagram, Facebook, WhatsApp, and Reels always stay **open-and-send**. The app will not show **Sent** unless the provider confirms delivery.
+**Auto-send is Gmail only.** Each user connects their own Gmail. Instagram, Facebook, WhatsApp, and Reels always stay **open-and-send**. The app will not show **Sent** unless Gmail confirms acceptance.
 
 ## Email
 
 See [EMAIL.md](./EMAIL.md) and `/docs/email`.
 
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`
-- Verified sender
-- Settings: Email reminders + Events
+- Google OAuth + Gmail API (`gmail.send`)
+- Encrypted per-user refresh tokens
+- Settings: Connect Gmail + reminder toggles
 - Cron: `/api/jobs/run`
 
 ## Instagram
@@ -31,11 +31,10 @@ Chat **import** still uses an export ZIP. Sending a reminder or Reel through Wha
 ## Environment
 
 ```
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_USER=
-SMTP_PASSWORD=
-SMTP_FROM=
+AUTH_GOOGLE_ID=
+AUTH_GOOGLE_SECRET=
+GMAIL_REDIRECT_URI=
+TOKEN_ENCRYPTION_KEY=
 META_APP_ID=
 META_APP_SECRET=
 ```

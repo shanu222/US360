@@ -81,9 +81,10 @@ See `.env.example`. Required for a local run:
 | `CRON_SECRET` | Protects `/api/jobs/run` |
 | `META_APP_ID` / `META_APP_SECRET` | Official Instagram OAuth |
 | `WHATSAPP_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_REMINDER_TEMPLATE` | Official WhatsApp Cloud API reminders |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google sign-in and personal Gmail OAuth |
+| `GMAIL_REDIRECT_URI` | Gmail OAuth callback (`/api/integrations/gmail/callback`) |
 | `TOKEN_ENCRYPTION_KEY` | Encrypts stored access tokens |
 | `S3_*` | Optional object storage |
-| `SMTP_*` | Optional email |
 | `VAPID_*` | Web Push |
 
 Never commit `.env` or API keys.
@@ -136,7 +137,7 @@ Set `NEXT_PUBLIC_APP_URL` and `AUTH_URL` to your HTTPS origin. Use a managed Pos
 | `CRON_SECRET` | Another long random secret |
 | `TOKEN_ENCRYPTION_KEY` | Long random secret for stored OAuth tokens |
 
-Optional: `AI_API_KEY`, Google OAuth, SMTP, VAPID, Meta/Instagram.
+Optional: `AI_API_KEY`, Google OAuth / Gmail, VAPID, Meta/Instagram.
 
 4. Deploy. The project uses **Node.js 24.x**. The `vercel-build` script generates the Prisma client, runs `prisma migrate deploy`, then builds Next.js.
 5. After the first deploy, set `AUTH_URL` / `NEXT_PUBLIC_APP_URL` to the real production domain if it changed, and redeploy.
@@ -162,7 +163,7 @@ Cards prefer **generated/CSS backgrounds + HTML typography**. Optional `IMAGE_AP
 ## Notifications
 
 - In-app notifications
-- **Email reminders** via real SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`) to addresses saved in the system (account email and her Profile email)
+- **Email reminders** from each user's connected Gmail (Google OAuth + Gmail API). There is no shared SMTP mailbox.
 - Web Push via VAPID keys (`npx web-push generate-vapid-keys`)
 
 WhatsApp, Instagram, Facebook, and Reels are **never auto-sent**. Quiet hours, frequency, and category toggles live in Settings. All schedules use the **user timezone**.
@@ -193,7 +194,7 @@ Calendar events are extracted from an uploaded WhatsApp **chat export**, not fro
 
 The app never asks for a personal WhatsApp password and never uses browser bots. Sending on WhatsApp is always **Open WhatsApp**. Automatic reminders go to **email** only.
 
-See [docs/EMAIL.md](docs/EMAIL.md) for SMTP setup and [docs/WHATSAPP.md](docs/WHATSAPP.md) for chat-import notes.
+See [docs/EMAIL.md](docs/EMAIL.md) for personal Gmail OAuth and [docs/WHATSAPP.md](docs/WHATSAPP.md) for chat-import notes.
 
 ---
 

@@ -109,7 +109,7 @@ export default function ReelsPage() {
                   {p?.serverConfigured ? "Server API ready" : "API credentials not configured"}
                   {p?.handle ? ` · ${p.handle}` : ""}
                 </p>
-                <p className="mt-1 text-xs text-muted">{p?.canAutoSend ? "Reminders can email saved addresses" : p?.fallback}</p>
+                <p className="mt-1 text-xs text-muted">{p?.canAutoSend ? "Reminders send from your connected Gmail" : p?.fallback}</p>
                 {id === "email" ? (
                   <label className="mt-2 flex items-center gap-2 text-xs">
                     <input

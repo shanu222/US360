@@ -139,6 +139,7 @@ export async function POST(req: Request) {
           subject: "A note for you",
           scheduledAt: new Date(body.reminderPlan.herReminderAt),
           toAddress: prefs.get("partner_email") || null,
+          metadata: { audience: "partner", source: "command" },
           openUrl: whatsappClickUrl(
             prefs.get("partner_whatsapp"),
             composeWhatsAppText({ reminder: body.reminderPlan.herMessage }),
@@ -176,7 +177,7 @@ export async function POST(req: Request) {
                 : channel === "facebook"
                   ? body.share?.facebook
                   : body.share?.email;
-          const emailTo = channel === "email" ? prefs.get("partner_email") || null : null;
+          const emailTo = channel === "email" ? prefs.get("partner_email") || user.email || null : null;
           const result = await deliverOutbound({
             userId: user.id,
             channel,
@@ -184,6 +185,7 @@ export async function POST(req: Request) {
             to: emailTo,
             openUrl,
             purpose: selected.has("reel") ? "reel" : selected.has("reminder_her") ? "reminder" : "message",
+            audience: channel === "email" && prefs.get("partner_email") ? "partner" : "user",
           });
           const withUrl = channel === "whatsapp" ? { ...result, openUrl: whatsappUrl } : result;
           await logOutbound({

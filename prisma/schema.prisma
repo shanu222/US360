@@ -765,6 +765,12 @@ model UserSettings {
   autoFacebook          Boolean        @default(false)
   autoWhatsapp          Boolean        @default(false)
   autoEmail             Boolean        @default(false)
+  emailCalendarReminders Boolean       @default(true)
+  emailEventReminders    Boolean       @default(true)
+  emailImportantDates    Boolean       @default(true)
+  emailRelationshipReminders Boolean   @default(true)
+  emailScheduledMessages Boolean       @default(true)
+  autoPartnerEmail      Boolean        @default(false)
   diningBudget          String?
   preciseLocationOptIn  Boolean        @default(false)
   createdAt             DateTime       @default(now())

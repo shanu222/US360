@@ -1,6 +1,7 @@
-import { emailConfigured } from "@/lib/email";
 import { instagramConfigured } from "@/integrations/instagram";
 import { whatsappConfigured } from "@/integrations/whatsapp";
+import { gmailOAuthConfigured } from "@/integrations/google-oauth";
+import { gmailStatus } from "@/integrations/gmail";
 import { db } from "@/lib/db";
 
 export function facebookConfigured() {
@@ -8,11 +9,12 @@ export function facebookConfigured() {
 }
 
 export async function platformStatus(userId: string) {
-  const [user, settings, ig, relationship] = await Promise.all([
+  const [user, settings, ig, relationship, gmail] = await Promise.all([
     db.user.findUnique({ where: { id: userId } }),
     db.userSettings.findUnique({ where: { userId } }),
     db.integrationAccount.findUnique({ where: { userId_provider: { userId, provider: "instagram" } } }),
     db.relationship.findFirst({ where: { userId }, include: { preferences: true }, orderBy: { createdAt: "asc" } }),
+    gmailStatus(userId),
   ]);
   const prefs = new Map((relationship?.preferences ?? []).map((p) => [p.key, p.value]));
   const handle = (key: string) => prefs.get(key)?.trim() || "";
@@ -50,13 +52,15 @@ export async function platformStatus(userId: string) {
     },
     email: {
       label: "Email",
-      serverConfigured: emailConfigured(),
-      connected: Boolean(handle("partner_email") || user?.email),
-      oauth: false,
-      handle: handle("partner_email") || user?.email || null,
-      auto: Boolean(settings?.emailNotifications),
-      canAutoSend: emailConfigured() && Boolean(handle("partner_email") || user?.email),
-      fallback: "Reminders go to saved emails when SMTP is configured",
+      serverConfigured: gmailOAuthConfigured(),
+      connected: gmail.connected,
+      oauth: gmail.connected,
+      handle: gmail.email || user?.email || null,
+      auto: Boolean(settings?.emailNotifications) && gmail.connected,
+      canAutoSend: gmail.connected && Boolean(gmail.email || user?.email),
+      fallback: gmail.expired
+        ? "Gmail connection expired — reconnect in Settings"
+        : "Connect Gmail in Settings to send from your account",
     },
   };
 }

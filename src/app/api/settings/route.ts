@@ -3,6 +3,7 @@ import { requireUser } from "@/server/auth";
 import { db } from "@/lib/db";
 import { handleApiError, jsonOk } from "@/lib/api";
 import { emailSetupStatus } from "@/lib/email";
+import { gmailStatus } from "@/integrations/gmail";
 import { parseGender } from "@/lib/voice";
 
 export async function GET() {
@@ -19,13 +20,16 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
     });
     const partnerEmail = relationship?.preferences.find((p) => p.key === "partner_email")?.value?.trim() || null;
+    const gmail = await gmailStatus(user.id);
     return jsonOk({
       ...settings,
       timezone: user.timezone,
       accountEmail: user.email,
+      myEmail: gmail.email || user.email,
       partnerEmail,
       partnerGender: parseGender(relationship?.partnerGender),
       email: emailSetupStatus(),
+      gmail,
     });
   } catch (error) {
     return handleApiError(error);
@@ -57,20 +61,34 @@ const schema = z.object({
   autoFacebook: z.boolean().optional(),
   autoWhatsapp: z.boolean().optional(),
   autoEmail: z.boolean().optional(),
+  emailCalendarReminders: z.boolean().optional(),
+  emailEventReminders: z.boolean().optional(),
+  emailImportantDates: z.boolean().optional(),
+  emailRelationshipReminders: z.boolean().optional(),
+  emailScheduledMessages: z.boolean().optional(),
+  autoPartnerEmail: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request) {
   try {
     const user = await requireUser();
     const body = schema.parse(await req.json());
-    const { timezone, ...rest } = body;
+    const { timezone, autoPartnerEmail, autoEmail, ...rest } = body;
     if (timezone) {
       await db.user.update({ where: { id: user.id }, data: { timezone } });
     }
+    const partnerFlag = autoPartnerEmail ?? autoEmail;
     const settings = await db.userSettings.upsert({
       where: { userId: user.id },
-      update: rest,
-      create: { userId: user.id, ...rest },
+      update: {
+        ...rest,
+        ...(partnerFlag !== undefined ? { autoPartnerEmail: partnerFlag, autoEmail: partnerFlag } : {}),
+      },
+      create: {
+        userId: user.id,
+        ...rest,
+        ...(partnerFlag !== undefined ? { autoPartnerEmail: partnerFlag, autoEmail: partnerFlag } : {}),
+      },
     });
     return jsonOk(settings);
   } catch (error) {

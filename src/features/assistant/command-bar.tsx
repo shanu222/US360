@@ -556,8 +556,8 @@ export function CommandBar({ compact }: { compact?: boolean }) {
             </div>
             <p className="mt-3 text-xs text-muted">
               Send opens WhatsApp with the reminder, Reel link, card words, and image links packed in — you tap send.
-              A card image is copied when possible so you can paste it in the chat. Email can still go automatically to
-              saved addresses. Instagram and Facebook stay open-and-send. Nothing is auto-sent on WhatsApp.
+              A card image is copied when possible so you can paste it in the chat. Email can go automatically from
+              your connected Gmail. Instagram and Facebook stay open-and-send. Nothing is auto-sent on WhatsApp.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => void apply(false)}>

@@ -1,5 +1,6 @@
-import { sendEmail, emailConfigured } from "@/lib/email";
+import { sendEmail } from "@/lib/email";
 import { db } from "@/lib/db";
+import { gmailStatus } from "@/integrations/gmail";
 import type { Prisma } from "@prisma/client";
 
 export type SendChannel = "instagram" | "facebook" | "whatsapp" | "email";
@@ -18,6 +19,7 @@ export async function deliverOutbound(opts: {
   to?: string | null;
   openUrl?: string | null;
   purpose?: "reminder" | "reel" | "message";
+  audience?: "user" | "partner";
 }) {
   if (opts.channel !== "email") {
     return {
@@ -37,26 +39,40 @@ export async function deliverOutbound(opts: {
     };
   }
 
-  if (!emailConfigured() || !opts.to) {
+  if (!opts.to) {
     return {
       status: "manual" as const,
       sent: false,
       openUrl: opts.openUrl,
-      reason: "Email SMTP is not configured, or no saved address was found.",
+      reason: "No saved email address was found for this reminder.",
+    };
+  }
+
+  const gmail = await gmailStatus(opts.userId);
+  if (!gmail.connected) {
+    return {
+      status: gmail.expired ? ("expired" as const) : ("manual" as const),
+      sent: false,
+      openUrl: opts.openUrl,
+      reason: gmail.expired
+        ? "Gmail connection expired. Reconnect Gmail in Settings."
+        : "Connect Gmail in Settings to send this from your account.",
     };
   }
 
   const result = await sendEmail({
+    userId: opts.userId,
     to: opts.to,
     subject: opts.subject || "A note for you",
     text: opts.body,
   });
-  if (result.sent) return { status: "sent" as const, sent: true, openUrl: null as string | null, reason: null };
+  if (result.sent) return { status: "sent" as const, sent: true, openUrl: null as string | null, reason: null, from: result.from };
   return {
-    status: "failed" as const,
+    status: result.reason === "gmail_expired" ? ("expired" as const) : ("failed" as const),
     sent: false,
     openUrl: opts.openUrl,
-    reason: result.reason ?? "The mail server did not accept the message.",
+    reason: result.reason ?? "Gmail did not accept the message.",
+    from: result.from ?? null,
   };
 }
 

@@ -1,67 +1,80 @@
-# Email reminders (SMTP)
+# Email (personal Gmail OAuth)
 
-US360 can send **calendar reminders and prepared notes by email** to addresses already saved in the system:
+Each US360 user connects **their own Gmail** with Google OAuth. Mail is sent with the **Gmail API** from that account.
 
-- your account email
-- her email on Profile (`partner_email`)
+US360 never asks for a Gmail password or App Password, never stores Google passwords, and never uses one shared mailbox for all users.
 
-WhatsApp, Instagram, Facebook, and Reels are **never auto-sent**. Those stay open-and-send.
+Access and refresh tokens stay on the server, encrypted with `TOKEN_ENCRYPTION_KEY`. They are never returned to the browser or written to git.
 
-The app will not show **Sent** unless the mail server accepts the message.
+## What the user does
 
-## External setup
+1. Settings → Email & notifications → **Connect Gmail**
+2. Google consent (send mail on their behalf)
+3. **Send Test Email** — Sent only if Gmail accepts the message
+4. Optional: partner email on Profile, Automatic partner emails off by default
 
-Do these outside the US360 UI, then paste values into the host environment (Vercel → Project → Settings → Environment Variables, or a local `.env`).
+## Google Cloud
 
-1. Choose a mail provider (Gmail with an App Password, Outlook, Resend, SendGrid, Amazon SES, or any SMTP host).
-2. Create or verify a **From** address the provider allows you to send as.
-3. Copy the SMTP host (for Gmail: `smtp.gmail.com`).
-4. Copy the SMTP port: `587` (STARTTLS) or `465` (SSL).
-5. Copy the SMTP username (usually the mailbox address).
-6. Copy the SMTP password. For Gmail you must use a 16-character **App Password**, not your normal Google password (Google Account → Security → 2-Step Verification → App passwords).
-7. Set these variables:
+1. Google Cloud project → enable **Gmail API**
+2. OAuth consent screen with:
+   - `openid`
+   - `https://www.googleapis.com/auth/userinfo.email`
+   - `https://www.googleapis.com/auth/gmail.send`
+3. OAuth client type **Web application** (the same client as Google sign-in is fine)
 
-```
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=you@gmail.com
-SMTP_PASSWORD=your-app-password
-SMTP_FROM=US360 <you@gmail.com>
-```
+### Redirect URIs
 
-8. Redeploy (Vercel) or restart `npm run dev` so the process picks up the new variables.
-9. In US360, sign in and confirm your account email is correct.
-10. On **Profile**, add her email if partner reminders should go to her.
-11. On **Settings**, turn on **Email reminders to saved addresses** and **Events**.
-12. Send **Send test email**. If it arrives, calendar jobs can mail reminders. If it fails, the product will not claim it was sent.
-13. Keep the daily cron (`CRON_SECRET` + `/api/jobs/run`) enabled so scheduled reminder emails actually fire.
-
-## Gmail
-
-- Enable 2-Step Verification.
-- Create an App Password for “Mail”.
-- `SMTP_FROM` should use the same Gmail address (or a Google-verified alias).
-
-## Resend / SendGrid / similar
-
-Use the provider’s SMTP credentials, not a fake `https://SMTP_HOST/` webhook. Example Resend:
+Development:
 
 ```
-SMTP_HOST=smtp.resend.com
-SMTP_PORT=587
-SMTP_USER=resend
-SMTP_PASSWORD=re_xxxxxxxxx
-SMTP_FROM=US360 <reminders@your-verified-domain>
+http://localhost:3000/api/auth/callback/google
+http://localhost:3000/api/integrations/gmail/callback
 ```
 
-The From address must be on a domain the provider has verified.
+Production (must match the live origin exactly):
 
-## What gets emailed
+```
+https://YOUR-DOMAIN/api/auth/callback/google
+https://YOUR-DOMAIN/api/integrations/gmail/callback
+```
 
-| Reminder | Goes to |
+Also add the origins (`http://localhost:3000` and `https://YOUR-DOMAIN`) under Authorized JavaScript origins.
+
+`gmail.send` is a sensitive Google scope. In testing mode, add Test users. Production with many users may require Google app verification.
+
+## Vercel environment (server-side only)
+
+Never prefix these with `NEXT_PUBLIC_`.
+
+| Variable | Purpose |
 | --- | --- |
-| Calendar / “you” reminders | Account email |
-| Prepared notes for her (`reminder_her`) | Her Profile email |
-| Reels, Instagram, Facebook, WhatsApp | Never emailed or auto-sent |
+| `AUTH_GOOGLE_ID` | OAuth client ID (sign-in + Gmail, unless overridden) |
+| `AUTH_GOOGLE_SECRET` | OAuth client secret |
+| `GMAIL_GOOGLE_ID` | Optional separate client ID for Gmail |
+| `GMAIL_GOOGLE_SECRET` | Optional separate client secret |
+| `GMAIL_REDIRECT_URI` | `https://YOUR-DOMAIN/api/integrations/gmail/callback` |
+| `AUTH_URL` / `NEXT_PUBLIC_APP_URL` | Public origin used to build callback URLs |
+| `TOKEN_ENCRYPTION_KEY` | Encrypts Gmail tokens at rest |
+| `AUTH_SECRET` | Session signing |
+| `CRON_SECRET` | Daily job runner so scheduled Gmail sends fire |
 
-Until SMTP is set, reminders still appear in-app and by web push.
+Local `.env` uses `http://localhost:3000` for `AUTH_URL` and `GMAIL_REDIRECT_URI`.
+
+## Architecture
+
+```
+User → Connect Gmail → Google OAuth → encrypted tokens on that user row
+     → reminder engine / cron → Gmail API → From: that user's Gmail
+```
+
+User A’s jobs never load User B’s tokens. From is the connected address; US360 will not claim a send unless Gmail returns a message id.
+
+## What is emailed
+
+| Reminder | Goes to | From |
+| --- | --- | --- |
+| Calendar / you reminders | Connected Gmail / account email | Connected Gmail |
+| Partner notes | Partner Profile email | Connected Gmail, only if enabled or Send now |
+| Reels, Instagram, Facebook, WhatsApp | Never auto-sent | — |
+
+Until Gmail is connected, reminders still appear in-app and by web push.

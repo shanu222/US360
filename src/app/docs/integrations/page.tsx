@@ -14,7 +14,8 @@ export default function IntegrationsDocsPage() {
       <Card>
         <CardTitle>Email (the only auto-send)</CardTitle>
         <p className="mt-3 text-sm text-muted">
-          SMTP on the server plus your account email and/or the partner email on Profile. Full steps:{" "}
+          Each person connects their own Gmail in Settings. Mail is sent through Google OAuth and the Gmail API from
+          that account. Full steps:{" "}
           <Link className="underline" href="/docs/email">
             /docs/email
           </Link>
