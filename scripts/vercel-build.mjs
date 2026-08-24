@@ -1,7 +1,24 @@
 import { spawnSync } from "node:child_process";
 
-if (!process.env.DIRECT_URL && process.env.DATABASE_URL) {
+const placeholderDb = "postgresql://postgres:postgres@127.0.0.1:5432/postgres?schema=public";
+const hasDatabase = Boolean(process.env.DATABASE_URL);
+
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = placeholderDb;
+  console.warn(
+    "DATABASE_URL is not set. Skipping Prisma migrations so this Vercel build can finish. Add a Postgres database in the Vercel dashboard for login and saved data.",
+  );
+}
+
+if (!process.env.DIRECT_URL) {
   process.env.DIRECT_URL = process.env.DATABASE_URL;
+}
+
+if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
+  process.env.AUTH_SECRET = "vercel-build-placeholder-set-AUTH_SECRET-in-project-env";
+  console.warn(
+    "AUTH_SECRET is not set. Using a build placeholder. Set AUTH_SECRET in Vercel env vars before using authentication.",
+  );
 }
 
 function run(command, args) {
@@ -15,16 +32,12 @@ function run(command, args) {
   }
 }
 
-if (!process.env.DATABASE_URL) {
-  console.error("DATABASE_URL is required for Vercel. Add a Postgres database and set DATABASE_URL + DIRECT_URL.");
-  process.exit(1);
-}
-
-if (!process.env.AUTH_SECRET) {
-  console.error("AUTH_SECRET is required for Vercel. Generate one with: openssl rand -base64 32");
-  process.exit(1);
-}
-
 run("npx", ["prisma", "generate"]);
-run("npx", ["prisma", "migrate", "deploy"]);
+
+if (hasDatabase) {
+  run("npx", ["prisma", "migrate", "deploy"]);
+} else {
+  console.warn("Skipping `prisma migrate deploy` because DATABASE_URL was not provided.");
+}
+
 run("npx", ["next", "build"]);

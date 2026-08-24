@@ -8,7 +8,10 @@ import { db } from "@/lib/db";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 14 },
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  secret:
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    (process.env.VERCEL ? "vercel-build-placeholder-set-AUTH_SECRET-in-project-env" : undefined),
   trustHost: true,
   pages: {
     signIn: "/login",
