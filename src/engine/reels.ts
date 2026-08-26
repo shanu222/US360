@@ -113,6 +113,35 @@ export function moodReelQueries(opts: {
   return unique([...personal, ...mood, "cute wholesome reel"]).slice(0, 6);
 }
 
+export type SuggestedReel = {
+  id: string;
+  title: string;
+  query: string;
+  url: string;
+};
+
+export function suggestReels(opts: {
+  emotion: Emotion;
+  situation: SituationKind;
+  likes: string[];
+  foods: string[];
+  topics: string[];
+  calms?: string;
+  movies?: string;
+  songs?: string;
+  reelQueries?: string[];
+}): SuggestedReel[] {
+  const extras = ["cute couple reel", "wholesome couple reel", "soft aesthetic reel", "funny cute reel", "romantic couple reel"];
+  const queries = unique([...(opts.reelQueries ?? []).slice(0, 2), ...moodReelQueries(opts), ...extras]).slice(0, 5);
+  while (queries.length < 5) queries.push(extras[queries.length] ?? "couple reel");
+  return queries.slice(0, 5).map((query, index) => ({
+    id: `reel-${index + 1}`,
+    title: query.replace(/\s*reels?\s*/gi, " ").replace(/\s+/g, " ").trim() || query,
+    query,
+    url: instagramSearchUrl(query).search,
+  }));
+}
+
 export function pickBestReel(opts: {
   category: string | null;
   emotion: Emotion;

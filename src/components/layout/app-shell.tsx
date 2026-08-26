@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Search } from "lucide-react";
-import { NAV, MOBILE_NAV } from "@/lib/nav";
+import { NAV, MOBILE_NAV, MORE_HREFS } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
 
@@ -25,7 +25,10 @@ export function AppShell({
         </Link>
         <nav className="mt-8 flex-1 space-y-1" aria-label="Main">
           {NAV.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active =
+              item.href === "/more"
+                ? MORE_HREFS.some((href) => pathname === href || pathname.startsWith(`${href}/`))
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (
               <Link
@@ -90,7 +93,10 @@ export function AppShell({
       >
         <div className="grid grid-cols-5">
           {MOBILE_NAV.map((item) => {
-            const active = pathname === item.href || (item.href !== "/more" && pathname.startsWith(item.href));
+            const active =
+              item.href === "/more"
+                ? pathname === "/more" || MORE_HREFS.some((href) => pathname === href || pathname.startsWith(`${href}/`))
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (
               <Link

@@ -7,7 +7,6 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/states";
-import { SendWhatsAppButton } from "@/components/send-whatsapp";
 
 const TYPES = ["BIRTHDAY", "ANNIVERSARY", "EVENT", "EXAM", "WORK", "FAMILY", "PERSONAL", "CUSTOM"];
 
@@ -93,9 +92,7 @@ export default function CalendarPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <h1 className="font-display text-4xl text-navy">Calendar</h1>
-      <p className="mt-2 text-muted">
-        Clear dates from WhatsApp are added automatically. Uncertain ones wait for you. Reminders go out 7 days, 3 days, tomorrow, and on the day — plus WhatsApp if Cloud API is configured.
-      </p>
+      <p className="mt-2 text-muted">Dates and reminders. Chat stays in the background; uncertain dates wait here.</p>
 
       {pending.length ? (
         <div className="mt-6 space-y-3">
@@ -111,7 +108,6 @@ export default function CalendarPage() {
                       {new Date(item.at).toLocaleString()} · {whenLabel(days)}
                     </p>
                     <p className="mt-2 text-xs text-muted">{item.hint}</p>
-                    <p className="mt-1 text-sm italic">“{item.quote}”</p>
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={() => void decide(item, "confirm")}>
@@ -155,7 +151,7 @@ export default function CalendarPage() {
       </form>
       <div className="mt-6 space-y-3">
         {upcoming.length === 0 ? (
-          <EmptyState title="No upcoming dates yet" description="Import a WhatsApp ZIP or add a birthday, exam, or anything you don’t want to miss." />
+          <EmptyState title="No upcoming dates yet" description="Add a birthday, exam, or anything you don’t want to miss." />
         ) : (
           upcoming.map((e) => {
             const fromChat = (e.notes ?? "").toLowerCase().includes("whatsapp");
@@ -173,15 +169,6 @@ export default function CalendarPage() {
                     <Badge>{e.type.toLowerCase()}</Badge>
                     {fromChat ? <Badge tone="rose">from chat</Badge> : null}
                     <Badge tone="success">reminders on</Badge>
-                    <SendWhatsAppButton
-                      reminder={
-                        e.type === "EXAM"
-                          ? `Good luck with your exam today. You've got this ❤️`
-                          : `Thinking of you for ${e.title.toLowerCase()} today ❤️`
-                      }
-                      message={`Reminder: ${e.title} — ${whenLabel(days)}`}
-                      label="Send on WhatsApp"
-                    />
                   </div>
                 </div>
               </Card>

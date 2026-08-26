@@ -214,19 +214,11 @@ export function commandExamples(partnerGender?: string | null): string[] {
   const v = voiceFor(partnerGender ?? "female");
   return [
     `${v.They} is angry.`,
-    `${v.They} is angry because I forgot to call ${v.them}.`,
     `${v.They} is sad today.`,
-    `${v.They} has an exam tomorrow.`,
     `${v.They} is stressed.`,
-    "What should I do?",
-    "Find a Reel for this situation.",
-    `Find something nice to send ${v.them}.`,
-    `${v.They} did really well in ${v.their} exam.`,
+    "Should I apologize?",
+    "We just had a fight.",
+    `${v.They} has an exam tomorrow.`,
     `I want to make ${v.them} smile.`,
-    "What should we eat tonight?",
-    "Suggest a restaurant.",
-    "Plan a date for us.",
-    "What should we visit in Islamabad?",
-    "What should we do today?",
   ];
 }

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { voiceFor } from "@/lib/voice";
 
 type Gmail = {
   configured: boolean;
@@ -82,7 +81,6 @@ export default function SettingsPage() {
 
   if (!settings) return <p className="text-sm text-muted">Loading settings…</p>;
 
-  const voice = voiceFor(settings.partnerGender);
   const gmail = settings.gmail;
 
   return (
@@ -93,8 +91,7 @@ export default function SettingsPage() {
         <p className="text-xs uppercase tracking-[0.2em] text-rose">Email & notifications</p>
         <CardTitle className="mt-2">Gmail</CardTitle>
         <p className="mt-2 text-sm text-muted">
-          Connect your own Gmail. Reminders are sent from that account through Google&apos;s official OAuth and Gmail
-          API — not a shared mailbox, and never with a Gmail password.
+          Connect your own Gmail. It is used only to email you calendar reminders — not Reels, not WhatsApp, not partner mail.
         </p>
 
         {gmail?.expired ? (
@@ -113,11 +110,7 @@ export default function SettingsPage() {
 
         <ul className="mt-3 space-y-1 text-sm">
           <li>
-            My Email: <span className="font-medium">{settings.myEmail || gmail?.email || settings.accountEmail || "not set"}</span>
-          </li>
-          <li>
-            {voice.Their} email (Profile):{" "}
-            <span className="font-medium">{settings.partnerEmail || "not set — add it on Profile"}</span>
+            Reminders go to: <span className="font-medium">{settings.myEmail || gmail?.email || settings.accountEmail || "your connected Gmail"}</span>
           </li>
         </ul>
         <p className="mt-2 text-xs text-muted">
@@ -166,39 +159,18 @@ export default function SettingsPage() {
               <a href="/api/integrations/gmail/start">{gmail?.expired ? "Reconnect Gmail" : "Connect Gmail"}</a>
             </Button>
           )}
-          <Button asChild variant="ghost">
-            <a href="/profile">Add {voice.their} email</a>
-          </Button>
         </div>
 
-        <p className="mt-6 text-xs uppercase tracking-[0.2em] text-rose">Email settings</p>
+        <p className="mt-6 text-xs uppercase tracking-[0.2em] text-rose">Calendar email</p>
         <div className="mt-3 space-y-4">
-          <Row label="Calendar reminders" checked={settings.emailCalendarReminders !== false} onChange={(v) => save({ emailCalendarReminders: v })} />
-          <Row label="Event reminders" checked={settings.emailEventReminders !== false} onChange={(v) => save({ emailEventReminders: v })} />
-          <Row label="Important-date reminders" checked={settings.emailImportantDates !== false} onChange={(v) => save({ emailImportantDates: v })} />
-          <Row label="Relationship reminders" checked={settings.emailRelationshipReminders !== false} onChange={(v) => save({ emailRelationshipReminders: v })} />
-          <Row label="Scheduled messages" checked={settings.emailScheduledMessages !== false} onChange={(v) => save({ emailScheduledMessages: v })} />
-          <Row
-            label="Automatic partner emails"
-            checked={Boolean(settings.autoPartnerEmail)}
-            onChange={(v) => save({ autoPartnerEmail: v, autoEmail: v })}
-          />
+          <Row label="Email me calendar reminders" checked={settings.emailCalendarReminders !== false && settings.emailNotifications} onChange={(v) => save({ emailCalendarReminders: v, emailNotifications: v, emailEventReminders: v })} />
         </div>
       </Card>
 
       <Card>
-        <CardTitle>Instagram, Facebook, WhatsApp</CardTitle>
+        <CardTitle>Chat import</CardTitle>
         <p className="mt-2 text-sm text-muted">
-          These are never auto-sent — not reminders, and not Reels. US360 can open the official app with a caption
-          ready. You tap send yourself. Chat import still uses a WhatsApp export ZIP, not a live login.
-        </p>
-      </Card>
-
-      <Card>
-        <CardTitle>WhatsApp chat</CardTitle>
-        <p className="mt-2 text-sm text-muted">
-          Upload a WhatsApp export ZIP. US360 reads the whole chat locally on the server — no AI — and fills Memory,
-          likes, dates, and your writing style.
+          Optional. Upload a chat ZIP so Memory can learn quietly. It is not shown when you ask for a Reel or for help.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button asChild variant="outline">

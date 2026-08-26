@@ -192,6 +192,21 @@ describe("reel picker and share links", () => {
     expect(pack.missingWhatsapp).toBe(false);
   });
 
+  it("returns five Instagram Reel searches for a moment", async () => {
+    const { suggestReels } = await import("@/engine/reels");
+    const found = suggestReels({
+      emotion: "ANGER",
+      situation: "UNKNOWN",
+      likes: ["chai"],
+      foods: ["biryani"],
+      topics: ["class"],
+    });
+    expect(found).toHaveLength(5);
+    for (const reel of found) {
+      expect(reel.url).toContain("instagram.com");
+    }
+  });
+
   it("opens WhatsApp with reminder, Reel, and card text packed in", async () => {
     const { composeWhatsAppText, whatsappClickUrl } = await import("@/lib/whatsapp-open");
     const text = composeWhatsAppText({

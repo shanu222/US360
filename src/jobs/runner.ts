@@ -77,19 +77,7 @@ async function notify(
   const s = user.settings;
   const allowEmail =
     s.emailNotifications &&
-    (emailKind === "important"
-      ? s.emailImportantDates !== false
-      : emailKind === "calendar"
-        ? s.emailCalendarReminders !== false
-        : emailKind === "relationship"
-          ? s.emailRelationshipReminders !== false
-          : emailKind === "scheduled"
-            ? s.emailScheduledMessages !== false
-            : type === "EVENT_REMINDER"
-              ? s.emailEventReminders !== false
-              : type === "MORNING_CARD" || type === "NIGHT_CARD" || type === "EVENING_REMINDER"
-                ? s.emailRelationshipReminders !== false
-                : true);
+    (emailKind === "calendar" || emailKind === "event" || type === "EVENT_REMINDER");
   if (allowEmail && user.email) {
     const gmail = await gmailStatus(userId);
     if (gmail.expired) {
