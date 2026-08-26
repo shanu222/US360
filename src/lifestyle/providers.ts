@@ -22,10 +22,11 @@ function fromCatalog(city: string, kind: VenueKind, slot: MealSlot, now: Date): 
   }));
 }
 
-async function googlePlaces(city: string, kind: VenueKind): Promise<VenueRecord[]> {
+async function googlePlaces(city: string, kind: VenueKind, area?: string | null): Promise<VenueRecord[]> {
   const key = process.env.GOOGLE_PLACES_API_KEY;
   if (!key) return [];
-  const query = kind === "restaurant" ? `restaurants in ${city} Pakistan` : `things to do in ${city} Pakistan`;
+  const where = area ? `${area} ${city} Pakistan` : `${city} Pakistan`;
+  const query = kind === "restaurant" ? `restaurants in ${where}` : `things to do in ${where}`;
   try {
     const res = await fetch(
       `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${key}`,
@@ -48,6 +49,7 @@ async function googlePlaces(city: string, kind: VenueKind): Promise<VenueRecord[
     return (json.results ?? []).slice(0, 12).map((p) => ({
       name: p.name,
       city,
+      area: area ?? undefined,
       address: p.formatted_address,
       kind,
       cuisine: kind === "restaurant" ? ["mixed"] : [],
@@ -72,13 +74,13 @@ async function googlePlaces(city: string, kind: VenueKind): Promise<VenueRecord[
   }
 }
 
-async function foursquare(city: string, kind: VenueKind): Promise<VenueRecord[]> {
+async function foursquare(city: string, kind: VenueKind, area?: string | null): Promise<VenueRecord[]> {
   const key = process.env.FOURSQUARE_API_KEY;
   if (!key) return [];
   const categories = kind === "restaurant" ? "13065" : "16000";
   try {
     const res = await fetch(
-      `https://api.foursquare.com/v3/places/search?near=${encodeURIComponent(`${city}, Pakistan`)}&categories=${categories}&limit=10`,
+      `https://api.foursquare.com/v3/places/search?near=${encodeURIComponent(`${area ? `${area}, ` : ""}${city}, Pakistan`)}&categories=${categories}&limit=10`,
       { headers: { Authorization: key, Accept: "application/json" }, next: { revalidate: 3600 } },
     );
     if (!res.ok) return [];
@@ -225,10 +227,10 @@ async function cacheVenues(records: VenueRecord[]) {
   }
 }
 
-export async function discoverVenues(opts: { city: string; kind: VenueKind; slot: MealSlot; now: Date }) {
+export async function discoverVenues(opts: { city: string; kind: VenueKind; slot: MealSlot; now: Date; area?: string | null }) {
   const city = normalizeCity(opts.city) || opts.city;
   const catalog = fromCatalog(city, opts.kind, opts.slot, opts.now);
-  const live = (await Promise.all([googlePlaces(city, opts.kind), foursquare(city, opts.kind), osm(city, opts.kind)])).flat();
+  const live = (await Promise.all([googlePlaces(city, opts.kind, opts.area), foursquare(city, opts.kind, opts.area), osm(city, opts.kind)])).flat();
   await cacheVenues(live);
   const byKey = new Map<string, VenueRecord>();
   for (const v of catalog) byKey.set(v.key, v);

@@ -28,7 +28,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     { title: "Memories", href: "/memory", items: memories.map((m) => ({ id: m.id, text: m.title })) },
     { title: "Events", href: "/calendar", items: events.map((m) => ({ id: m.id, text: m.title })) },
     { title: "Reels", href: "/reels", items: reels.map((m) => ({ id: m.id, text: m.url })) },
-    { title: "Messages", href: "/assistant/message-studio", items: messages.map((m) => ({ id: m.id, text: m.content.slice(0, 80) })) },
+    { title: "Messages", href: "/messages", items: messages.map((m) => ({ id: m.id, text: m.content.slice(0, 80) })) },
     { title: "Cards", href: "/cards", items: cards.map((m) => ({ id: m.id, text: m.message })) },
     { title: "Situations", href: "/assistant", items: situations.map((m) => ({ id: m.id, text: m.description.slice(0, 80) })) },
   ];

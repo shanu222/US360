@@ -38,8 +38,16 @@ function historyNote(ctx: EngineContext, parsed: ParsedCommand) {
   if (ctx.profile.messageLength === "short" && parsed.primaryEmotion === "ANGER") {
     notes.push("She prefers short messages during conflict.");
   }
-  if (ctx.chat.conflictSignals > 4 && parsed.wantsHistory) {
+  if (ctx.chat.conflictSignals > 4 && (parsed.wantsHistory || parsed.primaryEmotion === "ANGER")) {
     notes.push("Imported chat had several tense lines. Repair that stayed short tended to fit the pattern.");
+  }
+  const exam = ctx.upcoming.find((e) => e.type === "EXAM");
+  if (exam && (parsed.primarySituation === "EXAM" || /exam/i.test(parsed.raw))) {
+    notes.push(`Calendar already has ${exam.title} on ${exam.startAt.toLocaleDateString()}.`);
+  }
+  if (parsed.intents.includes("FIND_FOOD") && (ctx.food.partner.dishes.length || ctx.chat.foods.length || ctx.profile.foods.length)) {
+    const likes = [...ctx.food.partner.dishes, ...ctx.chat.foods, ...ctx.profile.foods].filter(Boolean).slice(0, 3);
+    notes.push(`Food likes on file: ${likes.join(", ")}.`);
   }
   const lastConflict = ctx.recentSituations.find((s) => /angry|upset|argument/i.test(s.description));
   if (lastConflict) notes.push(`Recent record: “${lastConflict.description.slice(0, 90)}”.`);

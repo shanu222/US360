@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Search } from "lucide-react";
-import { NAV, MOBILE_NAV, MORE_HREFS } from "@/lib/nav";
+import { NAV, MOBILE_NAV, navItemIsActive } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
 
@@ -23,19 +23,16 @@ export function AppShell({
           <p className="font-display text-3xl tracking-tight text-navy">US360</p>
           <p className="mt-1 text-[11px] uppercase tracking-[0.22em] text-muted">Private companion</p>
         </Link>
-        <nav className="mt-8 flex-1 space-y-1" aria-label="Main">
+        <nav className="mt-6 flex-1 space-y-0.5 overflow-y-auto pr-1" aria-label="Main">
           {NAV.map((item) => {
-            const active =
-              item.href === "/more"
-                ? MORE_HREFS.some((href) => pathname === href || pathname.startsWith(`${href}/`))
-                : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active = navItemIsActive(item.href, pathname);
             const Icon = item.icon;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition",
+                  "flex items-center gap-3 rounded-2xl px-3 py-2 text-sm transition",
                   active ? "bg-navy text-cream" : "text-ink/80 hover:bg-paper",
                 )}
               >
@@ -93,10 +90,7 @@ export function AppShell({
       >
         <div className="grid grid-cols-5">
           {MOBILE_NAV.map((item) => {
-            const active =
-              item.href === "/more"
-                ? pathname === "/more" || MORE_HREFS.some((href) => pathname === href || pathname.startsWith(`${href}/`))
-                : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active = navItemIsActive(item.href, pathname);
             const Icon = item.icon;
             return (
               <Link

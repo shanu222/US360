@@ -5,7 +5,6 @@ import { db } from "@/lib/db";
 import { greetingForHour, localHour } from "@/lib/utils";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getLatestChatImport } from "@/chat/queries";
 
 export default async function HomePage() {
   const session = await auth();
@@ -20,49 +19,38 @@ export default async function HomePage() {
   const relationship = user.relationships[0];
   const hour = localHour(user.timezone || "UTC");
 
-  const [upcoming, chatImport] = await Promise.all([
-    db.calendarEvent.findMany({
-      where: { userId: user.id, startAt: { gte: new Date() } },
-      orderBy: { startAt: "asc" },
-      take: 3,
-    }),
-    getLatestChatImport(user.id),
-  ]);
+  const upcoming = await db.calendarEvent.findMany({
+    where: { userId: user.id, startAt: { gte: new Date() } },
+    orderBy: { startAt: "asc" },
+    take: 3,
+  });
 
-  const tasks = [
-    { href: "/morning", label: "Good morning", detail: "One morning card" },
-    { href: "/night", label: "Good night", detail: "One night card" },
-    { href: "/food", label: "Food", detail: "What to eat" },
-    { href: "/explore", label: "Explore", detail: "Where to go" },
-    { href: "/reels", label: "Find a Reel", detail: "Five Instagram Reels" },
-    { href: "/assistant", label: "Help", detail: "What should I do?" },
-  ];
+  const next = upcoming[0];
+  const status = next
+    ? `${next.title} · ${daysUntilLabel(next.startAt)}`
+    : "Nothing urgent on the calendar.";
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <h1 className="font-display text-4xl text-navy md:text-5xl">
+        <p className="text-xs uppercase tracking-[0.28em] text-rose">Today</p>
+        <h1 className="mt-2 font-display text-4xl text-navy md:text-5xl">
           {greetingForHour(hour)}, {user.name?.split(" ")[0] ?? "there"}
         </h1>
-        <p className="mt-2 text-muted">
-          {relationship ? `Caring for ${relationship.partnerName}. Pick one thing.` : "Set up a relationship profile to personalize US360."}
-        </p>
+        <p className="mt-2 text-muted">{relationship ? `Caring for ${relationship.partnerName}.` : "Add a relationship in Settings → Profile."}</p>
       </div>
 
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        {tasks.map((task) => (
-          <Link key={task.href} href={task.href} className="card-premium flex flex-col gap-1 p-4 hover:shadow-soft">
-            <span className="font-medium">{task.label}</span>
-            <span className="text-xs text-muted">{task.detail}</span>
-          </Link>
-        ))}
-      </section>
+      <Card>
+        <p className="text-xs uppercase tracking-[0.2em] text-rose">Status</p>
+        <CardTitle className="mt-2">{status}</CardTitle>
+        <p className="mt-2 text-sm text-muted">Open a section in the menu when you need it. Home stays an overview.</p>
+      </Card>
 
       <Card>
         <CardTitle>Upcoming</CardTitle>
         <div className="mt-4 space-y-3">
           {upcoming.length === 0 ? (
-            <p className="text-sm text-muted">No upcoming dates. Add one from Calendar when you need it.</p>
+            <p className="text-sm text-muted">No upcoming dates. Add one in Calendar.</p>
           ) : (
             upcoming.map((e) => (
               <Link key={e.id} href="/calendar" className="flex items-center justify-between rounded-2xl bg-paper px-4 py-3">
@@ -77,21 +65,21 @@ export default async function HomePage() {
         </div>
       </Card>
 
-      {!chatImport ? (
-        <p className="text-sm text-muted">
-          Optional: import a chat ZIP from{" "}
-          <Link className="underline" href="/memory">
-            Memory
-          </Link>{" "}
-          so US360 can learn quietly in the background.
-        </p>
-      ) : (
-        <p className="text-sm text-muted">
-          <Link className="underline" href="/more">
-            More
-          </Link>
-        </p>
-      )}
+      <section>
+        <h2 className="mb-3 font-display text-2xl">Quick actions</h2>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { href: "/daily-love", label: "Daily Love" },
+            { href: "/assistant", label: "Ask the Assistant" },
+            { href: "/calendar", label: "Calendar" },
+            { href: "/restaurants", label: "Restaurants" },
+          ].map((item) => (
+            <Link key={item.href} href={item.href} className="card-premium p-4 text-sm font-medium hover:shadow-soft">
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

@@ -80,6 +80,7 @@ export type LifestyleIntent =
 export type LifestyleHints = {
   intents: LifestyleIntent[];
   cityHint: string | null;
+  areaHint: string | null;
   cuisineHint: string | null;
   dishHint: string | null;
   budgetHint: PriceRange | null;

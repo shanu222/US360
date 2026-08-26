@@ -10,6 +10,20 @@ const schema = z.object({
   approved: z.boolean().optional(),
 });
 
+export async function GET() {
+  try {
+    const user = await requireUser();
+    const messages = await db.message.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: 40,
+    });
+    return jsonOk(messages);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const user = await requireUser();

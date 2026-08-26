@@ -57,7 +57,7 @@ export async function buildLifestyle(opts: {
 
   const restaurants = city && needFood
     ? scoreVenues({
-        venues: await discoverVenues({ city, kind: "restaurant", slot, now: opts.ctx.now }),
+        venues: await discoverVenues({ city, kind: "restaurant", slot, now: opts.ctx.now, area: hints.areaHint }),
         partner,
         user,
         chatFoods: [...opts.ctx.chat.foods, ...opts.ctx.chat.likes],
@@ -67,6 +67,7 @@ export async function buildLifestyle(opts: {
         budget: hints.budgetHint || partner.budget || user.budget,
         cuisineHint: hints.cuisineHint,
         dishHint: hints.dishHint,
+        areaHint: hints.areaHint,
         vibe: hints.dateNightVibe,
         slot,
         now: opts.ctx.now,
@@ -76,7 +77,7 @@ export async function buildLifestyle(opts: {
 
   const places = city && needPlace
     ? scoreVenues({
-        venues: await discoverVenues({ city, kind: "place", slot, now: opts.ctx.now }),
+        venues: await discoverVenues({ city, kind: "place", slot, now: opts.ctx.now, area: hints.areaHint }),
         partner,
         user,
         chatFoods: opts.ctx.profile.places,
@@ -85,6 +86,7 @@ export async function buildLifestyle(opts: {
         visitedKeys: visited,
         budget: hints.budgetHint,
         vibe: hints.dateNightVibe,
+        areaHint: hints.areaHint,
         slot,
         now: opts.ctx.now,
         relationshipState: opts.parsed.primarySituation === "EXAM" ? "SUPPORT" : undefined,
@@ -119,7 +121,7 @@ export async function buildLifestyle(opts: {
   const summary = !city
     ? "Add your city on Profile (city only — no home address) so recommendations can be local."
     : restaurants.length || places.length
-      ? `Suggestions for ${city}${weather ? ` · ${weather.summary}${weather.tempC != null ? `, ${Math.round(weather.tempC)}°C` : ""}` : ""}. Catalog plus any live search you have configured.`
+      ? `Suggestions for ${hints.areaHint ? `${hints.areaHint}, ` : ""}${city}${weather ? ` · ${weather.summary}${weather.tempC != null ? `, ${Math.round(weather.tempC)}°C` : ""}` : ""}. Catalog plus any live search you have configured.`
       : `No live listings yet for ${city}. Catalog options will appear once the city matches, or add GOOGLE_PLACES_API_KEY / FOURSQUARE_API_KEY.`;
 
   return {

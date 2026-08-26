@@ -1,5 +1,6 @@
 import type { DateNightVibe, FoodPrefs, MealSlot, PriceRange, ScoredVenue, VenueRecord } from "@/lifestyle/types";
 import { isOpenAt } from "@/lifestyle/hours";
+import { nearbyAreas } from "@/lifestyle/cities";
 
 function hasAny(hay: string[], needles: string[]) {
   const h = hay.map((x) => x.toLowerCase());
@@ -17,6 +18,7 @@ export function scoreVenues(opts: {
   budget?: PriceRange | null;
   cuisineHint?: string | null;
   dishHint?: string | null;
+  areaHint?: string | null;
   vibe?: DateNightVibe | null;
   slot: MealSlot;
   now: Date;
@@ -46,6 +48,20 @@ export function scoreVenues(opts: {
     if (opts.dishHint && blob.includes(opts.dishHint)) {
       score += 16;
       reasons.push(`Has ${opts.dishHint}.`);
+    }
+    if (opts.areaHint) {
+      const nearby = nearbyAreas(opts.areaHint);
+      const venueArea = (v.area ?? "").replace(/\s+/g, "").toUpperCase();
+      const exact = nearby[0]?.replace(/\s+/g, "").toUpperCase();
+      if (exact && (venueArea.includes(exact) || (v.address ?? "").toUpperCase().includes(opts.areaHint.toUpperCase()))) {
+        score += 26;
+        reasons.push(`In ${opts.areaHint}.`);
+      } else if (nearby.some((a) => venueArea.includes(a.replace(/\s+/g, "").toUpperCase()))) {
+        score += 12;
+        reasons.push(`Close to ${opts.areaHint}.`);
+      } else {
+        score -= 8;
+      }
     }
     if (opts.budget && v.priceRange === opts.budget) {
       score += 12;

@@ -6,7 +6,7 @@ export default function ExplorePage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="font-display text-4xl text-navy">Explore</h1>
-        <p className="mt-2 text-muted">Places to go and date ideas. Restaurants are on Food.</p>
+        <p className="mt-2 text-muted">Places to go and date ideas. Restaurants stay in Restaurants.</p>
         <p className="mt-2 text-sm">
           City lives on{" "}
           <Link className="underline" href="/profile">

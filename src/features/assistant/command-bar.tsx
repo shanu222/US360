@@ -94,13 +94,14 @@ export function CommandBar({
   const [voice, setVoice] = useState<PartnerVoice>(voiceFor("female"));
   const examples = useMemo(() => examplesForFocus(focus, voice.gender), [focus, voice.gender]);
   const copy = focusCopy(focus);
-  const hasLifestyle = Boolean(
+  const isAssistant = focus === "assistant";
+  const showFood = Boolean(result?.lifestyle?.restaurants.length && (focus === "food" || isAssistant));
+  const showPlaces = Boolean(
     result?.lifestyle &&
-      (result.lifestyle.restaurants.length || result.lifestyle.places.length || result.lifestyle.dateNight || result.lifestyle.dayPlan),
+      (focus === "places" || isAssistant) &&
+      (result.lifestyle.places.length || result.lifestyle.dateNight || result.lifestyle.dayPlan),
   );
-  const showFood = Boolean(result && (focus === "food" || (focus === "moment" && hasLifestyle && result.lifestyle?.restaurants.length)));
-  const showPlaces = Boolean(result && (focus === "places" || (focus === "moment" && hasLifestyle && !result.lifestyle?.restaurants.length && result.lifestyle?.places.length)));
-  const showMoment = Boolean(result && focus === "moment" && !showFood && !showPlaces);
+  const showMoment = Boolean(result && (focus === "moment" || isAssistant) && (isAssistant || (!showFood && !showPlaces)));
 
   useEffect(() => {
     fetch("/api/profile")
@@ -185,20 +186,6 @@ export function CommandBar({
           {showFood && result.lifestyle ? <LifestyleResult lifestyle={result.lifestyle} show="food" /> : null}
           {showPlaces && result.lifestyle ? <LifestyleResult lifestyle={result.lifestyle} show="places" /> : null}
 
-          {focus === "moment" && hasLifestyle && !showFood && !showPlaces ? (
-            <Card>
-              <p className="text-sm">This looks like food or a place to go.</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button size="sm" asChild>
-                  <Link href="/food">Food</Link>
-                </Button>
-                <Button size="sm" variant="outline" asChild>
-                  <Link href="/explore">Explore</Link>
-                </Button>
-              </div>
-            </Card>
-          ) : null}
-
           {showMoment ? (
             <Card>
               <p className="text-xs uppercase tracking-[0.2em] text-rose">Next step</p>
@@ -211,6 +198,11 @@ export function CommandBar({
               {result.avoid.slice(0, 2).length ? (
                 <p className="mt-4 text-sm text-muted">Avoid: {result.avoid.slice(0, 2).join(" · ")}</p>
               ) : null}
+              {result.historyNotes.slice(0, 2).map((note) => (
+                <p key={note} className="mt-3 text-sm text-muted">
+                  {note}
+                </p>
+              ))}
             </Card>
           ) : null}
 
@@ -222,7 +214,7 @@ export function CommandBar({
             </Card>
           ) : null}
 
-          {result.message && (showMoment || picked.includes("message")) ? (
+          {result.message && (showMoment || isAssistant) ? (
             <Card>
               <p className="text-xs uppercase tracking-[0.2em] text-rose">Suggested message</p>
               <p className="mt-3 font-display text-2xl leading-snug">{result.message}</p>
@@ -234,7 +226,7 @@ export function CommandBar({
             </Card>
           ) : null}
 
-          {showMoment ? (
+          {showMoment && result.reel ? (
             <p className="text-sm text-muted">
               Need a Reel for this?{" "}
               <Link className="underline" href="/reels">
@@ -243,7 +235,7 @@ export function CommandBar({
             </p>
           ) : null}
 
-          {showMoment && result.card && picked.includes("card") ? (
+          {(showMoment && result.card && picked.includes("card")) || (isAssistant && result.card) ? (
             <div className="space-y-3">
               <div id="command-card-art">
                 <LoveCard message={result.card.message} themeId={result.card.theme} kicker="" />

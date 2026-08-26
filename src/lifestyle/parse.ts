@@ -1,9 +1,9 @@
-import { cityFromText } from "@/lifestyle/cities";
+import { areaFromText, cityFromText } from "@/lifestyle/cities";
 import type { DateNightVibe, LifestyleHints, LifestyleIntent, MealSlot, PriceRange } from "@/lifestyle/types";
 
 const CUISINES = ["chinese", "japanese", "italian", "thai", "pakistani", "bbq", "burger", "burgers", "pizza", "seafood", "cafe", "continental", "afghani", "fast food", "dessert", "biryani"];
 
-export function parseLifestyleHints(raw: string, now = new Date()): LifestyleHints {
+export function parseLifestyleHints(raw: string, _now = new Date()): LifestyleHints {
   const lower = raw.toLowerCase();
   const intents: LifestyleIntent[] = [];
   if (/\bwhat should we order|what to order|order from this\b/.test(lower)) intents.push("FIND_ORDER");
@@ -12,9 +12,11 @@ export function parseLifestyleHints(raw: string, now = new Date()): LifestyleHin
     intents.push("FIND_PLACE");
   }
   if (/\bplan (our |the )?weekend|this weekend|what can we do this weekend\b/.test(lower)) intents.push("PLAN_WEEKEND");
-  if (/\bwhat should we do today|plan (today|tomorrow)|what can we do tomorrow|go out tonight\b/.test(lower)) intents.push("PLAN_DAY");
+  if (/\bwhat should we do today|plan (today|tomorrow|our evening|the evening)|what can we do tomorrow|go out tonight\b/.test(lower)) {
+    intents.push("PLAN_DAY");
+  }
   if (
-    /\bwhat should we eat|where should we eat|good for dinner|suggest a restaurant|find a (good )?restaurant|what should we (have|order)|find a good burger|dinner in|what is good near|find something (she|he) likes|s?he wants (chinese|japanese|italian|thai|burger)|cheap restaurant|romantic restaurant|where should we go for dinner|find somewhere (nice|(she|he) would love)\b/.test(
+    /\bwhat should we eat|where should we eat|good for dinner|suggest a restaurant|find a (good )?restaurant|what should we (have|order)|find a good burger|dinner in|what is good near|find something (she|he) likes|s?he wants (chinese|japanese|italian|thai|burger)|cheap restaurant|romantic restaurant|where should we go for dinner|find somewhere (nice|(she|he) would love)|what restaurant would (she|he) like|eat in [a-z0-9 -]+|eat this morning|i am with (her|him).{0,40}\beat|with (her|him) right now.{0,40}\beat\b/.test(
       lower,
     )
   ) {
@@ -23,11 +25,11 @@ export function parseLifestyleHints(raw: string, now = new Date()): LifestyleHin
   }
 
   let mealSlot: MealSlot | null = null;
-  if (/\bbreakfast|nashta|brunch\b/.test(lower)) mealSlot = "breakfast";
+  if (/\bbreakfast|nashta|brunch|this morning\b/.test(lower)) mealSlot = "breakfast";
   else if (/\blunch\b/.test(lower)) mealSlot = "lunch";
   else if (/\bdinner|tonight|evening meal\b/.test(lower)) mealSlot = "dinner";
   else if (/\blate night|after 11\b/.test(lower)) mealSlot = "late";
-  else if (/\bnow|near us\b/.test(lower)) mealSlot = "now";
+  else if (/\bnow|near us|right now|i am with (her|him)\b/.test(lower)) mealSlot = "now";
 
   let budgetHint: PriceRange | null = null;
   if (/\bcheap|budget|affordable|low budget\b/.test(lower)) budgetHint = "low";
@@ -48,6 +50,7 @@ export function parseLifestyleHints(raw: string, now = new Date()): LifestyleHin
   return {
     intents,
     cityHint: cityFromText(raw),
+    areaHint: areaFromText(raw),
     cuisineHint: cuisine === "burgers" ? "burger" : cuisine,
     dishHint: /\bburger\b/.test(lower) ? "burger" : /\bbiryani\b/.test(lower) ? "biryani" : /\bpizza\b/.test(lower) ? "pizza" : null,
     budgetHint,

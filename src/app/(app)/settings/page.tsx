@@ -88,6 +88,26 @@ export default function SettingsPage() {
       <h1 className="font-display text-4xl text-navy">Settings</h1>
 
       <Card>
+        <CardTitle>Account</CardTitle>
+        <p className="mt-2 text-sm text-muted">Signed in as {settings.accountEmail || "your account"}.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <a href="/profile">Relationship profile</a>
+          </Button>
+        </div>
+      </Card>
+
+      <Card>
+        <CardTitle>Connected platforms</CardTitle>
+        <ul className="mt-3 space-y-2 text-sm text-muted">
+          <li>Gmail — calendar reminder emails only, from the account you authorize below.</li>
+          <li>Instagram — you send Reels yourself. US360 does not log in or auto-post.</li>
+          <li>Facebook — not used for calendar reminders.</li>
+          <li>WhatsApp — chat export is optional and stays in Memory. Calendar never sends there.</li>
+        </ul>
+      </Card>
+
+      <Card>
         <p className="text-xs uppercase tracking-[0.2em] text-rose">Email & notifications</p>
         <CardTitle className="mt-2">Gmail</CardTitle>
         <p className="mt-2 text-sm text-muted">
@@ -140,6 +160,9 @@ export default function SettingsPage() {
                 }}
               >
                 {testing ? "Sending…" : "Send Test Email"}
+              </Button>
+              <Button asChild variant="outline">
+                <a href="/api/integrations/gmail/start">Change Gmail account</a>
               </Button>
               <Button
                 variant="outline"

@@ -40,6 +40,12 @@ function whenLabel(days: number) {
   return `in ${days} days`;
 }
 
+type Gmail = {
+  connected: boolean;
+  expired: boolean;
+  email: string | null;
+};
+
 export default function CalendarPage() {
   const [items, setItems] = useState<EventItem[]>([]);
   const [pending, setPending] = useState<Pending[]>([]);
@@ -47,13 +53,16 @@ export default function CalendarPage() {
   const [type, setType] = useState("EVENT");
   const [startAt, setStartAt] = useState("");
   const [notes, setNotes] = useState("");
+  const [gmail, setGmail] = useState<Gmail | null>(null);
 
   async function load() {
-    const [cal, pend] = await Promise.all([fetch("/api/calendar"), fetch("/api/calendar/pending")]);
+    const [cal, pend, settings] = await Promise.all([fetch("/api/calendar"), fetch("/api/calendar/pending"), fetch("/api/settings")]);
     const json = await cal.json();
     const pjson = await pend.json();
+    const sjson = await settings.json();
     setItems(json.data ?? []);
     setPending(pjson.data ?? []);
+    setGmail(sjson.data?.gmail ?? null);
   }
 
   useEffect(() => {
@@ -92,7 +101,32 @@ export default function CalendarPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <h1 className="font-display text-4xl text-navy">Calendar</h1>
-      <p className="mt-2 text-muted">Dates and reminders. Chat stays in the background; uncertain dates wait here.</p>
+      <p className="mt-2 text-muted">
+        Dates, exams, birthdays, and reminders. Notifications go only through your connected Gmail — never WhatsApp,
+        Instagram, or Facebook.
+      </p>
+
+      <Card className="mt-6">
+        <p className="text-xs uppercase tracking-[0.2em] text-rose">Gmail reminders</p>
+        {gmail?.expired ? (
+          <p className="mt-2 text-sm">Gmail connection expired. Reconnect so reminders can send.</p>
+        ) : gmail?.connected ? (
+          <p className="mt-2 text-sm">
+            Reminders email from <span className="font-medium">{gmail.email}</span>. Change the account in Settings if
+            needed.
+          </p>
+        ) : (
+          <p className="mt-2 text-sm">Connect Gmail to receive calendar reminder emails from that account.</p>
+        )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button size="sm" asChild>
+            <a href="/api/integrations/gmail/start">{gmail?.connected && !gmail.expired ? "Change Gmail account" : gmail?.expired ? "Reconnect Gmail" : "Connect Gmail"}</a>
+          </Button>
+          <Button size="sm" variant="outline" asChild>
+            <a href="/settings">Reminder settings</a>
+          </Button>
+        </div>
+      </Card>
 
       {pending.length ? (
         <div className="mt-6 space-y-3">

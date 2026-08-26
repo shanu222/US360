@@ -33,7 +33,7 @@ export default function CardsPage() {
 
   useEffect(() => {
     load();
-    fetch("/api/chat/import")
+    fetch("/api/profile")
       .then((r) => r.json())
       .then((j) => setPartner(j.data?.partnerName ?? null))
       .catch(() => {});
@@ -72,7 +72,7 @@ export default function CardsPage() {
       <p className="text-xs uppercase tracking-[0.28em] text-rose">Personal cards</p>
       <h1 className="mt-2 font-display text-4xl text-navy md:text-5xl">Colorful cards</h1>
       <p className="mt-2 max-w-2xl text-muted">
-        Lines are drafted from chat likes, routines, and tone, then painted as a full card. Download a high-quality image or a print-ready PDF — no app branding on the card itself.
+        Lines are drafted from saved likes and tone, then painted as a full card. Download a high-quality image or a print-ready PDF — no app branding on the card itself.
       </p>
       <div className="mt-8 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="space-y-4">

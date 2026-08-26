@@ -43,6 +43,46 @@ describe("lifestyle commands", () => {
     expect(cityFromText("Find a burger in Islamabad")).toBe("Islamabad");
   });
 
+  it("maps F-10 and being with her now to Islamabad food", () => {
+    const parsed = parseLifestyleHints("I am with her right now in F-10. What should we eat?");
+    expect(parsed.intents).toContain("FIND_FOOD");
+    expect(parsed.cityHint).toBe("Islamabad");
+    expect(parsed.areaHint).toBe("F-10");
+    expect(parsed.mealSlot).toBe("now");
+
+    const restaurant = parseCommand("What restaurant would she like?");
+    expect(restaurant.intents).toContain("FIND_FOOD");
+
+    const morning = parseLifestyleHints("What should we eat this morning?");
+    expect(morning.intents).toContain("FIND_FOOD");
+    expect(morning.mealSlot).toBe("breakfast");
+  });
+
+  it("scores F-10 venues higher when the area is named", () => {
+    const venues = catalogForCity("Islamabad", "restaurant").map((v) => ({
+      ...v,
+      key: v.name,
+      provider: "catalog",
+      source: "catalog" as const,
+      freshness: "catalog" as const,
+      mapsUrl: "https://maps.google.com",
+    }));
+    const ranked = scoreVenues({
+      venues,
+      partner: emptyPrefs,
+      user: emptyPrefs,
+      chatFoods: [],
+      chatPlaces: [],
+      savedKeys: [],
+      visitedKeys: [],
+      areaHint: "F-10",
+      slot: "now",
+      now: new Date("2026-08-26T13:00:00"),
+    });
+    expect(ranked[0].area).toMatch(/F-10|F-11|F-9/);
+    expect(ranked.some((v) => v.area === "F-10")).toBe(true);
+  });
+
   it("scores a burger spot higher when she likes burgers", () => {
     const venues = catalogForCity("Islamabad", "restaurant").map((v) => ({
       ...v,
@@ -64,7 +104,7 @@ describe("lifestyle commands", () => {
       slot: "dinner",
       now: new Date("2026-08-25T19:00:00"),
     });
-    expect(ranked[0].name.toLowerCase()).toMatch(/brownie|burger|ginyaki|savour|chaaye|tuscany|monal/);
+    expect(ranked[0].name.toLowerCase()).toMatch(/brownie|burger|hardee|mcdonald|ginyaki|savour|chaaye|tuscany|monal|howdy/);
     expect(ranked[0].reasons.some((r) => /burger|like|city/i.test(r))).toBe(true);
   });
 

@@ -32,9 +32,34 @@ export function normalizeCity(value?: string | null) {
   return partial?.name ?? raw;
 }
 
+export function areaFromText(text: string) {
+  const markaz = text.match(/\b([defghi])\s*[-]?\s*(\d{1,2})\s*markaz\b/i);
+  if (markaz) return `${markaz[1].toUpperCase()}-${markaz[2]}`;
+  const sector = text.match(/\b([defghi])\s*[-]?\s*(\d{1,2})(?:\s*\/\s*\d)?\b/i);
+  if (sector) return `${sector[1].toUpperCase()}-${sector[2]}`;
+  if (/\bblue area\b/i.test(text)) return "Blue Area";
+  if (/\bsuper market\b/i.test(text)) return "F-10";
+  return null;
+}
+
+export function nearbyAreas(area?: string | null) {
+  if (!area) return [];
+  const compact = area.replace(/\s+/g, "").toUpperCase();
+  const match = compact.match(/^([A-I])-?(\d{1,2})/);
+  if (!match) return [area];
+  const letter = match[1];
+  const num = Number(match[2]);
+  const self = `${letter}-${num}`;
+  return [self, `${letter}-${num - 1}`, `${letter}-${num + 1}`];
+}
+
 export function cityFromText(text: string) {
   const lower = text.toLowerCase();
-  return PAKISTAN_CITIES.find((c) => new RegExp(`\\b${c.name.toLowerCase()}\\b`).test(lower))?.name ?? null;
+  const named = PAKISTAN_CITIES.find((c) => new RegExp(`\\b${c.name.toLowerCase()}\\b`).test(lower))?.name;
+  if (named) return named;
+  const area = areaFromText(text);
+  if (area || /\bblue area\b/i.test(text)) return "Islamabad";
+  return null;
 }
 
 export function cityMeta(name?: string | null) {
